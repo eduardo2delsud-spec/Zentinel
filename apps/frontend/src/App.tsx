@@ -1,0 +1,34 @@
+import {
+	BrowserRouter as Router,
+	Routes,
+	Route,
+	Navigate,
+} from "react-router-dom";
+import Sidebar from "./components/Sidebar";
+import Informes from "./pages/Informes";
+import Configuracion from "./pages/Configuracion";
+import { Archivos, Discord, Historial, Tareas } from "./pages/Sections";
+import "./index.css";
+
+function App() {
+	return (
+		<Router>
+			<div className="app-layout">
+				<Sidebar />
+				<main className="main-content">
+					<Routes>
+						<Route path="/" element={<Navigate to="/informes" replace />} />
+						<Route path="/archivos" element={<Archivos />} />
+						<Route path="/informes" element={<Informes />} />
+						<Route path="/tareas" element={<Tareas />} />
+						<Route path="/discord" element={<Discord />} />
+						<Route path="/historial" element={<Historial />} />
+						<Route path="/configuracion" element={<Configuracion />} />
+					</Routes>
+				</main>
+			</div>
+		</Router>
+	);
+}
+
+export default App;

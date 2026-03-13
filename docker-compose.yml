@@ -1,0 +1,25 @@
+services:
+  zentinel-backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    container_name: zentinel-backend
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./apps/backend/zentinel.db:/app/apps/backend/zentinel.db
+    environment:
+      - PORT=3001
+      - NODE_ENV=production
+    restart: always
+
+  zentinel-frontend:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+    container_name: zentinel-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - zentinel-backend
+    restart: always
