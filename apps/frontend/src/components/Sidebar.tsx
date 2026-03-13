@@ -7,6 +7,7 @@ import {
 	History,
 	Settings as SettingsIcon,
 	Shield,
+	LayoutDashboard,
 } from "lucide-react";
 
 const Sidebar = () => {
@@ -18,6 +19,13 @@ const Sidebar = () => {
 			</div>
 
 			<nav className="nav-links">
+				<NavLink
+					to="/dashboard"
+					className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
+				>
+					<LayoutDashboard />
+					<span>Dashboard</span>
+				</NavLink>
 				<NavLink
 					to="/archivos"
 					className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}

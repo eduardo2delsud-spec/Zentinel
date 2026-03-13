@@ -5,6 +5,7 @@ import {
 	Navigate,
 } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
+import Dashboard from "./pages/Dashboard";
 import Informes from "./pages/Informes";
 import Configuracion from "./pages/Configuracion";
 import { Archivos, Discord, Historial, Tareas } from "./pages/Sections";
@@ -17,7 +18,8 @@ function App() {
 				<Sidebar />
 				<main className="main-content">
 					<Routes>
-						<Route path="/" element={<Navigate to="/informes" replace />} />
+						<Route path="/" element={<Navigate to="/dashboard" replace />} />
+						<Route path="/dashboard" element={<Dashboard />} />
 						<Route path="/archivos" element={<Archivos />} />
 						<Route path="/informes" element={<Informes />} />
 						<Route path="/tareas" element={<Tareas />} />
