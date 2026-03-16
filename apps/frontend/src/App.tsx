@@ -1,14 +1,14 @@
 import {
+	Navigate,
+	Route,
 	BrowserRouter as Router,
 	Routes,
-	Route,
-	Navigate,
 } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
+import Configuracion from "./pages/Configuracion";
 import Dashboard from "./pages/Dashboard";
 import Informes from "./pages/Informes";
-import Configuracion from "./pages/Configuracion";
-import { Proyecto, Tareas, DiscordSettings } from "./pages/Sections";
+import { DiscordSettings, Proyecto, Tareas } from "./pages/Sections";
 import "./index.css";
 
 function App() {

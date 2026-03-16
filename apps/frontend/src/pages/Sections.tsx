@@ -1,18 +1,16 @@
-import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import {
-	Plus,
-	Trash2,
-	FolderSearch,
-	FileText,
-	Save,
 	Clock,
-	Eye,
-	EyeOff,
-	MessageSquare,
 	Edit,
+	FileText,
+	FolderSearch,
+	MessageSquare,
+	Plus,
+	Save,
+	Trash2,
 	X,
 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import FileBrowser from "../components/FileBrowser";
 
 const API_BASE = "http://localhost:3001/api";
@@ -45,9 +43,28 @@ interface Task {
 	model: string;
 	discordWebhookUrl?: string;
 	discordMentionId?: string;
+	projectId?: number;
 	active: boolean;
 }
 
+interface SavedModel {
+	id: number;
+	provider: string;
+	modelId: string;
+	displayName: string;
+}
+
+interface DiscordWebhook {
+	id: number;
+	name: string;
+	url: string;
+}
+
+interface DiscordMention {
+	id: number;
+	name: string;
+	discordId: string;
+}
 
 // --- Helpers ---
 const DAYS = [
@@ -95,7 +112,9 @@ export const Proyecto = () => {
 	const [newChangelogPath, setNewChangelogPath] = useState("");
 	const [showAdd, setShowAdd] = useState(false);
 	const [showBrowser, setShowBrowser] = useState(false);
-	const [browserTarget, setBrowserTarget] = useState<"root" | "changelog">("root");
+	const [browserTarget, setBrowserTarget] = useState<"root" | "changelog">(
+		"root",
+	);
 	const [editingProjectId, setEditingProjectId] = useState<number | null>(null);
 
 	const loadProjects = useCallback(async () => {
@@ -146,7 +165,7 @@ export const Proyecto = () => {
 		setNewName(p.name);
 		setNewRootPath(p.rootPath);
 		// Note: we'd need to fetch the changelog path separately or include it in the project object.
-		// For now, let's assume we fetch it or it's provided. 
+		// For now, let's assume we fetch it or it's provided.
 		// Actually, p.changelogSourceId is available. Let's fetch the path.
 		fetchSourcePath(p.changelogSourceId);
 		setShowAdd(true);
@@ -194,16 +213,26 @@ export const Proyecto = () => {
 				<div className="glass-card">
 					<div className="flex-between mb-2">
 						<h3>📂 Gestión de Proyectos (RAG + Contexto)</h3>
-						<button onClick={() => {
-							setShowAdd(!showAdd);
-							if (showAdd) {
-								setEditingProjectId(null);
-								setNewName("");
-								setNewRootPath("");
-								setNewChangelogPath("");
-							}
-						}}>
-							{showAdd ? <><X size={18} /> Cancelar</> : <><Plus size={18} /> Nuevo Proyecto</>}
+						<button
+							onClick={() => {
+								setShowAdd(!showAdd);
+								if (showAdd) {
+									setEditingProjectId(null);
+									setNewName("");
+									setNewRootPath("");
+									setNewChangelogPath("");
+								}
+							}}
+						>
+							{showAdd ? (
+								<>
+									<X size={18} /> Cancelar
+								</>
+							) : (
+								<>
+									<Plus size={18} /> Nuevo Proyecto
+								</>
+							)}
 						</button>
 					</div>
 
@@ -223,7 +252,9 @@ export const Proyecto = () => {
 							</div>
 
 							<div className="form-group">
-								<label htmlFor="proj-root">Carpeta Raíz del Proyecto (para RAG)</label>
+								<label htmlFor="proj-root">
+									Carpeta Raíz del Proyecto (para RAG)
+								</label>
 								<div style={{ display: "flex", gap: "0.5rem" }}>
 									<input
 										id="proj-root"
@@ -243,7 +274,9 @@ export const Proyecto = () => {
 							</div>
 
 							<div className="form-group">
-								<label htmlFor="proj-changelog">Archivo Changelog / Log (Obligatorio)</label>
+								<label htmlFor="proj-changelog">
+									Archivo Changelog / Log (Obligatorio)
+								</label>
 								<div style={{ display: "flex", gap: "0.5rem" }}>
 									<input
 										id="proj-changelog"
@@ -263,7 +296,10 @@ export const Proyecto = () => {
 							</div>
 
 							<button onClick={addProject}>
-								<Save size={18} /> {editingProjectId ? "Actualizar Proyecto" : "Crear Proyecto y Procesar RAG"}
+								<Save size={18} />{" "}
+								{editingProjectId
+									? "Actualizar Proyecto"
+									: "Crear Proyecto y Procesar RAG"}
 							</button>
 						</div>
 					)}
@@ -385,6 +421,11 @@ export const Tareas = () => {
 	const [projectsArr, setProjectsArr] = useState<Project[]>([]);
 	const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
 
+	const [taskModels, setTaskModels] = useState<string[]>([]);
+	const [taskSavedModels, setTaskSavedModels] = useState<SavedModel[]>([]);
+	const [globalWebhooks, setGlobalWebhooks] = useState<DiscordWebhook[]>([]);
+	const [globalMentions, setGlobalMentions] = useState<DiscordMention[]>([]);
+
 	const toggleDay = (key: string) => {
 		setSelectedDays((prev) =>
 			prev.includes(key) ? prev.filter((d) => d !== key) : [...prev, key],
@@ -393,22 +434,48 @@ export const Tareas = () => {
 
 	const loadData = useCallback(async () => {
 		try {
-			const [tRes, sRes, rRes, pRes] = await Promise.all([
+			const [tRes, sRes, rRes, pRes, mRes, wRes, mentRes] = await Promise.all([
 				axios.get(`${API_BASE}/tasks`),
 				axios.get(`${API_BASE}/sources`),
 				axios.get(`${API_BASE}/prompts`),
 				axios.get(`${API_BASE}/projects`),
+				axios.get(`${API_BASE}/ai-models`),
+				axios.get(`${API_BASE}/discord-webhooks`),
+				axios.get(`${API_BASE}/discord-mentions`),
 			]);
 			setTasks(tRes.data);
 			setSourcesArr(sRes.data);
 			setRoles(rRes.data.roles || []);
 			setProjectsArr(pRes.data);
+			setTaskSavedModels(mRes.data);
+			setGlobalWebhooks(wRes.data);
+			setGlobalMentions(mentRes.data);
 			if (sRes.data.length > 0 && !taskSourceId)
 				setTaskSourceId(sRes.data[0].id.toString());
 		} catch {
 			console.error("Error loading tasks data");
 		}
 	}, [taskSourceId]);
+
+	useEffect(() => {
+		let isMounted = true;
+		if (showAdd) {
+			(async () => {
+				const { data } = await axios.get(
+					`${API_BASE}/models?provider=${taskProvider}`,
+				);
+				if (isMounted) {
+					setTaskModels(data.models);
+					if (data.models.length > 0 && !taskModel) {
+						setTaskModel(data.models[0]);
+					}
+				}
+			})();
+		}
+		return () => {
+			isMounted = false;
+		};
+	}, [taskProvider, showAdd, taskModel]);
 
 	useEffect(() => {
 		(async () => {
@@ -455,6 +522,8 @@ export const Tareas = () => {
 		setTaskWebhook("");
 		setTaskMentionId("");
 		setTaskProjectId("");
+		setTaskProvider("ollama");
+		setTaskModel("");
 		setEditingTaskId(null);
 	};
 
@@ -491,11 +560,21 @@ export const Tareas = () => {
 			<div className="glass-card">
 				<div className="flex-between mb-2">
 					<h3>⏰ Tareas Programadas</h3>
-					<button onClick={() => {
-						setShowAdd(!showAdd);
-						if (showAdd) resetTaskForm();
-					}}>
-						{showAdd ? <><X size={18} /> Cancelar</> : <><Plus size={18} /> Nueva Tarea</>}
+					<button
+						onClick={() => {
+							setShowAdd(!showAdd);
+							if (showAdd) resetTaskForm();
+						}}
+					>
+						{showAdd ? (
+							<>
+								<X size={18} /> Cancelar
+							</>
+						) : (
+							<>
+								<Plus size={18} /> Nueva Tarea
+							</>
+						)}
 					</button>
 				</div>
 
@@ -619,40 +698,87 @@ export const Tareas = () => {
 						</div>
 
 						<div className="form-group">
-							<label>Modelo (nombre del modelo a usar)</label>
-							<input
+							<label>Modelo</label>
+							<select
 								value={taskModel}
 								onChange={(e) => setTaskModel(e.target.value)}
-								placeholder="Ej. llama3, gpt-4o-mini, etc."
-							/>
+							>
+								<optgroup label="Modelos Guardados">
+									{taskSavedModels
+										.filter((m) => m.provider === taskProvider)
+										.map((m) => (
+											<option key={m.id} value={m.modelId}>
+												⭐ {m.displayName} ({m.modelId})
+											</option>
+										))}
+								</optgroup>
+								<optgroup label="Modelos Disponibles">
+									{taskModels.map((m) => (
+										<option key={m} value={m}>
+											{m}
+										</option>
+									))}
+								</optgroup>
+							</select>
 						</div>
 
 						<div className="form-group">
-							<label>
-								<MessageSquare
-									size={14}
-									style={{ verticalAlign: "middle", marginRight: "0.3rem" }}
-								/>
-								Discord Webhook URL (Opcional)
-							</label>
-							<input
+							<label>Webhook de Discord</label>
+							<select
 								value={taskWebhook}
 								onChange={(e) => setTaskWebhook(e.target.value)}
-								placeholder="https://discord.com/api/webhooks/..."
-							/>
+							>
+								<option value="">-- Sin Notificación --</option>
+								{globalWebhooks.map((w) => (
+									<option key={w.id} value={w.url}>
+										🔗 {w.name}
+									</option>
+								))}
+								<option value="MANUAL">-- Ingresar Manualmente --</option>
+							</select>
 						</div>
+
+						{taskWebhook === "MANUAL" && (
+							<div className="form-group">
+								<label>URL del Webhook (Manual)</label>
+								<input
+									value={taskWebhook === "MANUAL" ? "" : taskWebhook}
+									onChange={(e) => setTaskWebhook(e.target.value)}
+									placeholder="https://discord.com/api/webhooks/..."
+								/>
+							</div>
+						)}
 
 						<div className="form-group">
-							<label>Menciones Discord (IDs separados por coma/espacio)</label>
-							<input
+							<label>Mencionar a:</label>
+							<select
 								value={taskMentionId}
 								onChange={(e) => setTaskMentionId(e.target.value)}
-								placeholder="Ej. 12345678, 87654321"
-							/>
+							>
+								<option value="">-- Nadie / Todos (Default) --</option>
+								{globalMentions.map((m) => (
+									<option key={m.id} value={m.discordId}>
+										👤 {m.name} ({m.discordId})
+									</option>
+								))}
+								<option value="MANUAL">-- ID Manual --</option>
+							</select>
 						</div>
 
+						{taskMentionId === "MANUAL" && (
+							<div className="form-group">
+								<label>Discord ID (Manual)</label>
+								<input
+									value={taskMentionId === "MANUAL" ? "" : taskMentionId}
+									onChange={(e) => setTaskMentionId(e.target.value)}
+									placeholder="Ej. 1322244099570405436"
+								/>
+							</div>
+						)}
+
 						<button onClick={saveTask}>
-							<Save size={18} /> {editingTaskId ? "Actualizar Tarea" : "Programar Tarea"}
+							<Save size={18} />{" "}
+							{editingTaskId ? "Actualizar Tarea" : "Programar Tarea"}
 						</button>
 					</div>
 				)}
@@ -747,31 +873,26 @@ export const Tareas = () => {
 
 // --- DISCORD PAGE ---
 export const DiscordSettings = () => {
-	const [webhookUrl, setWebhookUrl] = useState("");
-	const [mentionId, setMentionId] = useState("");
-	const [showUrl, setShowUrl] = useState(false);
-	const [saved, setSaved] = useState(false);
+	const [webhooks, setWebhooks] = useState<DiscordWebhook[]>([]);
+	const [mentions, setMentions] = useState<DiscordMention[]>([]);
 
-	const saveDiscordSettings = async () => {
-		try {
-			await axios.post(`${API_BASE}/settings`, {
-				settings: {
-					discord_webhook_url: webhookUrl,
-					discord_mention_id: mentionId,
-				},
-			});
-			setSaved(true);
-			setTimeout(() => setSaved(false), 2000);
-		} catch {
-			alert("Error al guardar configuración de Discord");
-		}
-	};
+	const [showAddWebhook, setShowAddWebhook] = useState(false);
+	const [showAddMention, setShowAddMention] = useState(false);
 
-	const loadDiscordSettings = useCallback(async () => {
+	const [newWName, setNewWName] = useState("");
+	const [newWUrl, setNewWUrl] = useState("");
+
+	const [newMName, setNewMName] = useState("");
+	const [newMId, setNewMId] = useState("");
+
+	const loadData = useCallback(async () => {
 		try {
-			const { data } = await axios.get(`${API_BASE}/settings`);
-			if (data.discord_webhook_url) setWebhookUrl(data.discord_webhook_url);
-			if (data.discord_mention_id) setMentionId(data.discord_mention_id);
+			const [wRes, mRes] = await Promise.all([
+				axios.get(`${API_BASE}/discord-webhooks`),
+				axios.get(`${API_BASE}/discord-mentions`),
+			]);
+			setWebhooks(wRes.data);
+			setMentions(mRes.data);
 		} catch {
 			console.error("Error loading discord settings");
 		}
@@ -779,46 +900,220 @@ export const DiscordSettings = () => {
 
 	useEffect(() => {
 		(async () => {
-			await loadDiscordSettings();
+			await loadData();
 		})();
-	}, [loadDiscordSettings]);
+	}, [loadData]);
+
+	const addWebhook = async () => {
+		if (!newWName || !newWUrl) return alert("Completa los campos");
+		try {
+			await axios.post(`${API_BASE}/discord-webhooks`, {
+				name: newWName,
+				url: newWUrl,
+			});
+			setNewWName("");
+			setNewWUrl("");
+			setShowAddWebhook(false);
+			loadData();
+		} catch {
+			alert("Error al añadir webhook");
+		}
+	};
+
+	const deleteWebhook = async (id: number) => {
+		if (!confirm("¿Eliminar este webhook?")) return;
+		try {
+			await axios.delete(`${API_BASE}/discord-webhooks/${id}`);
+			loadData();
+		} catch {
+			alert("Error al eliminar webhook");
+		}
+	};
+
+	const addMention = async () => {
+		if (!newMName || !newMId) return alert("Completa los campos");
+		try {
+			await axios.post(`${API_BASE}/discord-mentions`, {
+				name: newMName,
+				discordId: newMId,
+			});
+			setNewMName("");
+			setNewMId("");
+			setShowAddMention(false);
+			loadData();
+		} catch {
+			alert("Error al añadir mención");
+		}
+	};
+
+	const deleteMention = async (id: number) => {
+		if (!confirm("¿Eliminar esta mención?")) return;
+		try {
+			await axios.delete(`${API_BASE}/discord-mentions/${id}`);
+			loadData();
+		} catch {
+			alert("Error al eliminar mención");
+		}
+	};
 
 	return (
-		<div className="glass-card">
-			<h3>💬 Configuración de Discord</h3>
-			<div className="form-group">
-				<label>Webhook URL</label>
-				<div style={{ display: "flex", gap: "0.5rem" }}>
-					<input
-						type={showUrl ? "text" : "password"}
-						value={webhookUrl}
-						onChange={(e) => setWebhookUrl(e.target.value)}
-						placeholder="https://discord.com/api/webhooks/..."
-						style={{ flex: 1 }}
-					/>
-					<button className="secondary" onClick={() => setShowUrl(!showUrl)}>
-						{showUrl ? <EyeOff size={16} /> : <Eye size={16} />}
+		<div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
+			<div className="glass-card">
+				<div className="flex-between mb-2">
+					<h3>🔗 Webhooks de Discord</h3>
+					<button onClick={() => setShowAddWebhook(!showAddWebhook)}>
+						{showAddWebhook ? (
+							"Cancelar"
+						) : (
+							<>
+								<Plus size={18} /> Añadir Webhook
+							</>
+						)}
 					</button>
 				</div>
-			</div>
-			<div className="form-group">
-				<label>Menciones Discord (IDs separados por coma/espacio)</label>
-				<input
-					value={mentionId}
-					onChange={(e) => setMentionId(e.target.value)}
-					placeholder="Ej. 12345678, 87654321"
-				/>
-				<div
-					className="text-muted"
-					style={{ fontSize: "0.75rem", marginTop: "0.3rem" }}
-				>
-					Activa "Modo Desarrollador" en Discord → Click derecho en un usuario →
-					"Copiar ID de usuario"
+
+				{showAddWebhook && (
+					<div
+						className="glass-card mb-2"
+						style={{ background: "var(--bg-deep)" }}
+					>
+						<div className="form-group">
+							<label>Nombre del Webhook (ej. Canal General)</label>
+							<input
+								value={newWName}
+								onChange={(e) => setNewWName(e.target.value)}
+								placeholder="General"
+							/>
+						</div>
+						<div className="form-group">
+							<label>URL del Webhook</label>
+							<input
+								value={newWUrl}
+								onChange={(e) => setNewWUrl(e.target.value)}
+								placeholder="https://discord.com/api/webhooks/..."
+							/>
+						</div>
+						<button onClick={addWebhook}>
+							<Save size={18} /> Guardar Webhook
+						</button>
+					</div>
+				)}
+
+				<div className="grid-cols-2">
+					{webhooks.length === 0 ? (
+						<div className="text-muted p-1">No hay webhooks configurados.</div>
+					) : (
+						webhooks.map((w) => (
+							<div
+								key={w.id}
+								className="glass-card p-1"
+								style={{ background: "var(--bg-card)" }}
+							>
+								<div className="flex-between">
+									<div>
+										<strong>{w.name}</strong>
+										<div
+											className="text-muted"
+											style={{
+												fontSize: "0.7rem",
+												overflow: "hidden",
+												textOverflow: "ellipsis",
+												maxWidth: "200px",
+											}}
+										>
+											{w.url.substring(0, 30)}...
+										</div>
+									</div>
+									<button
+										className="secondary"
+										onClick={() => deleteWebhook(w.id)}
+										style={{ color: "#ff4444" }}
+									>
+										<Trash2 size={16} />
+									</button>
+								</div>
+							</div>
+						))
+					)}
 				</div>
 			</div>
-			<button onClick={saveDiscordSettings}>
-				<Save size={18} /> {saved ? "✓ Guardado" : "Guardar Configuración"}
-			</button>
+
+			<div className="glass-card">
+				<div className="flex-between mb-2">
+					<h3>👤 Menciones de Usuarios</h3>
+					<button onClick={() => setShowAddMention(!showAddMention)}>
+						{showAddMention ? (
+							"Cancelar"
+						) : (
+							<>
+								<Plus size={18} /> Añadir Usuario
+							</>
+						)}
+					</button>
+				</div>
+
+				{showAddMention && (
+					<div
+						className="glass-card mb-2"
+						style={{ background: "var(--bg-deep)" }}
+					>
+						<div className="form-group">
+							<label>Nombre del Usuario</label>
+							<input
+								value={newMName}
+								onChange={(e) => setNewMName(e.target.value)}
+								placeholder="Eduardo"
+							/>
+						</div>
+						<div className="form-group">
+							<label>Discord ID</label>
+							<input
+								value={newMId}
+								onChange={(e) => setNewMId(e.target.value)}
+								placeholder="1322244099570405436"
+							/>
+						</div>
+						<button onClick={addMention}>
+							<Save size={18} /> Guardar Usuario
+						</button>
+					</div>
+				)}
+
+				<div
+					className="grid-cols-2"
+					style={{
+						gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+					}}
+				>
+					{mentions.length === 0 ? (
+						<div className="text-muted p-1">No hay menciones configuradas.</div>
+					) : (
+						mentions.map((m) => (
+							<div
+								key={m.id}
+								className="glass-card p-1"
+								style={{ background: "var(--bg-card)" }}
+							>
+								<div className="flex-between">
+									<div>
+										<strong>{m.name}</strong>
+										<div className="text-muted" style={{ fontSize: "0.75rem" }}>
+											ID: {m.discordId}
+										</div>
+									</div>
+									<button
+										className="secondary"
+										onClick={() => deleteMention(m.id)}
+										style={{ color: "#ff4444" }}
+									>
+										<Trash2 size={16} />
+									</button>
+								</div>
+							</div>
+						))
+					)}
+				</div>
+			</div>
 		</div>
 	);
 };

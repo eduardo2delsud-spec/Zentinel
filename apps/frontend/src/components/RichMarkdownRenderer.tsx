@@ -1,9 +1,9 @@
+import mermaid from "mermaid";
+import { useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
-import { useEffect, useRef } from "react";
-import mermaid from "mermaid";
+import remarkGfm from "remark-gfm";
 
 // Configuración inicial de mermaid
 mermaid.initialize({

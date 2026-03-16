@@ -15,10 +15,12 @@ Todas las actividades importantes del proyecto se registran aquí.
 - **Secciones de Informe Enriquecidas**: Nuevos campos para "Hoy/Pendientes", "Bloqueos" y "Dudas" en la generación de informes, permitiendo un contexto más completo para la IA. [2026-03-16]
 - **Informes: Historial Integrado**: Integración del historial de informes como una pestaña dentro de "Informes", con opciones de re-descarga y re-envío a Discord. [2026-03-16]
 - **Informes: Edición de Reportes**: Capacidad de editar manualmente el contenido de informes generados en el historial para correcciones rápidas. [2026-03-16]
-- **Proyectos: Seguridad en RAG**: Implementación de filtrado automático respetando `.gitignore`, `.dockerignore` y reglas de seguridad para archivos sensibles (`.env`, llaves, secretos). [2026-03-16]
-- **Tareas: Contexto RAG Automático**: Las tareas programadas ahora pueden vincularse a proyectos para incluir contexto de código en reportes automáticos. [2026-03-16]
-- **Discord: Soporte Multiusuario**: Soporte para menciones de múltiples IDs de Discord en notificaciones y tareas. [2026-03-16]
-- **Gestión de Proyectos y RAG**: Nueva sección "Proyecto" que permite crear y **editar** proyectos, indexar archivos de código y utilizar ese contexto como RAG. [2026-03-16]
+- **Discord: Gestión de Canales**: Soporte para guardar múltiples Webhooks con nombres descriptivos. [2026-03-16]
+- **Discord: Directorio de Menciones**: Sistema de gestión de usuarios para mencionar sin usar IDs numéricos. [2026-03-16]
+- **Tareas e Informes: Selectores Inteligentes**: Integración de selectores para Modelos, Webhooks y Menciones. [2026-03-16]
+- **Proyectos: Seguridad en RAG**: Filtrado automático respetando `.gitignore`, `.dockerignore` y reglas de seguridad. [2026-03-16]
+- **Tareas: Contexto RAG Automático**: Vinculación de tareas a proyectos para incluir contexto de código. [2026-03-16]
+- **Gestión de Proyectos y RAG**: Nueva sección "Proyecto" para crear, editar y indexar código como RAG. [2026-03-16]
 
 ### Changed (Cambio)
 - **CRUD Optimizado**: Proyectos y Tareas Programadas ahora son totalmente editables, facilitando ajustes de configuración sin re-crear. [2026-03-16]

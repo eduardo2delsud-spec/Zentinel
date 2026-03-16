@@ -1,18 +1,18 @@
-import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
-import { DiscordSettings } from "./Sections";
 import {
-	Plus,
-	Trash2,
-	Save,
-	Key,
 	Bot,
-	FileText,
 	Cpu,
 	Download,
-	Upload,
+	FileText,
+	Key,
 	MessageSquare,
+	Plus,
+	Save,
+	Trash2,
+	Upload,
 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { DiscordSettings } from "./Sections";
 
 const API_BASE = "http://localhost:3001/api";
 

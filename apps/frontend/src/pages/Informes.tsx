@@ -1,6 +1,19 @@
-import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
-import { Send, Sparkles, Download, Loader2, History, Eye, EyeOff, Trash2, FileText, Edit, X, Save } from "lucide-react";
+import {
+	Download,
+	Edit,
+	Eye,
+	EyeOff,
+	FileText,
+	History,
+	Loader2,
+	Save,
+	Send,
+	Sparkles,
+	Trash2,
+	X,
+} from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import { io } from "socket.io-client";
 import { RichMarkdownRenderer } from "../components/RichMarkdownRenderer";
 
@@ -23,6 +36,18 @@ interface SavedModel {
 	provider: string;
 	modelId: string;
 	displayName: string;
+}
+
+interface DiscordWebhook {
+	id: number;
+	name: string;
+	url: string;
+}
+
+interface DiscordMention {
+	id: number;
+	name: string;
+	discordId: string;
 }
 
 interface Report {
@@ -65,6 +90,11 @@ const Informes = () => {
 	const [editingReportId, setEditingReportId] = useState<number | null>(null);
 	const [editingContent, setEditingContent] = useState("");
 
+	const [globalWebhooks, setGlobalWebhooks] = useState<DiscordWebhook[]>([]);
+	const [globalMentions, setGlobalMentions] = useState<DiscordMention[]>([]);
+	const [selectedWebhook, setSelectedWebhook] = useState("");
+	const [selectedMention, setSelectedMention] = useState("");
+
 	useEffect(() => {
 		const newSocket = io("http://localhost:3001");
 
@@ -96,11 +126,13 @@ const Informes = () => {
 
 	const fetchData = useCallback(async () => {
 		try {
-			const [pRes, sRes, mRes, projectsRes] = await Promise.all([
+			const [pRes, sRes, mRes, projectsRes, wRes, mentRes] = await Promise.all([
 				axios.get(`${API_BASE}/prompts`),
 				axios.get(`${API_BASE}/sources`),
 				axios.get(`${API_BASE}/ai-models`),
 				axios.get(`${API_BASE}/projects`),
+				axios.get(`${API_BASE}/discord-webhooks`),
+				axios.get(`${API_BASE}/discord-mentions`),
 			]);
 			if (pRes.data.roles) {
 				setRoles(pRes.data.roles);
@@ -109,6 +141,10 @@ const Informes = () => {
 			setSourcesArr(sRes.data);
 			setSavedModels(mRes.data);
 			setProjectsArr(projectsRes.data);
+			setGlobalWebhooks(wRes.data);
+			setGlobalMentions(mentRes.data);
+
+			if (wRes.data.length > 0) setSelectedWebhook(wRes.data[0].url);
 		} catch {
 			console.error("Error fetching initial data");
 		}
@@ -216,21 +252,34 @@ const Informes = () => {
 	};
 
 	const sendExistingToDiscord = async (reportContent: string) => {
+		if (!reportContent) return alert("No hay reporte para enviar");
+
+		let webhookToUse = selectedWebhook;
+		if (webhookToUse === "MANUAL") {
+			const manual = prompt("Ingresa la URL del Webhook:");
+			if (!manual) return;
+			webhookToUse = manual;
+		}
+
+		if (!webhookToUse) {
+			return alert("Selecciona un webhook de destino.");
+		}
+
 		setSendingDiscord(true);
 		try {
-			const { data: settings } = await axios.get(`${API_BASE}/settings`);
-			if (!settings.discord_webhook_url) {
-				return alert("Configura el Webhook en la sección de Configuración.");
-			}
 			await axios.post(`${API_BASE}/discord`, {
-				webhookUrl: settings.discord_webhook_url,
+				webhookUrl: webhookToUse,
 				content: reportContent,
-				title: `🚀 Re-envío de Informe - Zentinel`,
-				mentionId: settings.discord_mention_id,
+				title: "Actualización de Estado - Zentinel",
+				color: "#6366f1",
+				mentionId:
+					selectedMention === "MANUAL"
+						? prompt("ID de Discord:")
+						: selectedMention,
 			});
-			alert("¡Informe enviado a Discord!");
-		} catch {
-			alert("Error al enviar a Discord.");
+			alert("Enviado a Discord con éxito");
+		} catch (err: any) {
+			alert("Error al enviar a Discord: " + err.message);
 		} finally {
 			setSendingDiscord(false);
 		}
@@ -265,7 +314,9 @@ const Informes = () => {
 					onClick={() => setActiveTab("generar")}
 					style={{
 						borderRadius: "12px 12px 0 0",
-						...(activeTab === "generar" ? {} : { background: "transparent", border: "none" }),
+						...(activeTab === "generar"
+							? {}
+							: { background: "transparent", border: "none" }),
 					}}
 				>
 					<Sparkles size={18} /> Generar Informe
@@ -275,7 +326,9 @@ const Informes = () => {
 					onClick={() => setActiveTab("lista")}
 					style={{
 						borderRadius: "12px 12px 0 0",
-						...(activeTab === "lista" ? {} : { background: "transparent", border: "none" }),
+						...(activeTab === "lista"
+							? {}
+							: { background: "transparent", border: "none" }),
 					}}
 				>
 					<FileText size={18} /> Historial de Informes
@@ -287,7 +340,14 @@ const Informes = () => {
 					<section className="glass-card">
 						<div className="flex-between mb-1" style={{ gap: "0.5rem" }}>
 							<h3>🚀 Nuevo Informe</h3>
-							<div style={{ display: "flex", gap: "0.5rem", flex: 1, justifyContent: "flex-end" }}>
+							<div
+								style={{
+									display: "flex",
+									gap: "0.5rem",
+									flex: 1,
+									justifyContent: "flex-end",
+								}}
+							>
 								<select
 									style={{ width: "auto", fontSize: "0.85rem" }}
 									value={selectedProjectId}
@@ -315,12 +375,18 @@ const Informes = () => {
 								</select>
 							</div>
 						</div>
-						<div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem" }}>
+						<div
+							style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem" }}
+						>
 							<div style={{ flex: 1 }}>
 								<label
 									htmlFor="provider-select"
 									className="text-muted"
-									style={{ fontSize: "0.8rem", display: "block", marginBottom: "0.4rem" }}
+									style={{
+										fontSize: "0.8rem",
+										display: "block",
+										marginBottom: "0.4rem",
+									}}
 								>
 									IA Provider
 								</label>
@@ -337,7 +403,11 @@ const Informes = () => {
 								<label
 									htmlFor="model-select"
 									className="text-muted"
-									style={{ fontSize: "0.8rem", display: "block", marginBottom: "0.4rem" }}
+									style={{
+										fontSize: "0.8rem",
+										display: "block",
+										marginBottom: "0.4rem",
+									}}
 								>
 									Modelo
 								</label>
@@ -375,11 +445,19 @@ const Informes = () => {
 								<label
 									htmlFor="role-select"
 									className="text-muted"
-									style={{ fontSize: "0.8rem", display: "block", marginBottom: "0.4rem" }}
+									style={{
+										fontSize: "0.8rem",
+										display: "block",
+										marginBottom: "0.4rem",
+									}}
 								>
 									Role
 								</label>
-								<select id="role-select" value={role} onChange={(e) => setRole(e.target.value)}>
+								<select
+									id="role-select"
+									value={role}
+									onChange={(e) => setRole(e.target.value)}
+								>
 									{roles.map((r) => (
 										<option key={r.id} value={r.id}>
 											{r.name}
@@ -397,9 +475,20 @@ const Informes = () => {
 							style={{ height: "250px", resize: "none", marginBottom: "1rem" }}
 						/>
 
-						<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+						<div
+							style={{
+								display: "grid",
+								gridTemplateColumns: "1fr 1fr 1fr",
+								gap: "1rem",
+								marginBottom: "1rem",
+							}}
+						>
 							<div>
-								<label htmlFor="today-input" className="text-muted" style={{ fontSize: "0.8rem" }}>
+								<label
+									htmlFor="today-input"
+									className="text-muted"
+									style={{ fontSize: "0.8rem" }}
+								>
 									⬇️ HOY / PENDIENTES
 								</label>
 								<textarea
@@ -407,11 +496,19 @@ const Informes = () => {
 									placeholder="¿Qué planes hay para hoy?"
 									value={today}
 									onChange={(e) => setToday(e.target.value)}
-									style={{ height: "120px", resize: "none", fontSize: "0.85rem" }}
+									style={{
+										height: "120px",
+										resize: "none",
+										fontSize: "0.85rem",
+									}}
 								/>
 							</div>
 							<div>
-								<label htmlFor="blockers-input" className="text-muted" style={{ fontSize: "0.8rem" }}>
+								<label
+									htmlFor="blockers-input"
+									className="text-muted"
+									style={{ fontSize: "0.8rem" }}
+								>
 									⛔ BLOQUEOS
 								</label>
 								<textarea
@@ -419,11 +516,19 @@ const Informes = () => {
 									placeholder="¿Algo que te detenga?"
 									value={blockers}
 									onChange={(e) => setBlockers(e.target.value)}
-									style={{ height: "120px", resize: "none", fontSize: "0.85rem" }}
+									style={{
+										height: "120px",
+										resize: "none",
+										fontSize: "0.85rem",
+									}}
 								/>
 							</div>
 							<div>
-								<label htmlFor="doubts-input" className="text-muted" style={{ fontSize: "0.8rem" }}>
+								<label
+									htmlFor="doubts-input"
+									className="text-muted"
+									style={{ fontSize: "0.8rem" }}
+								>
 									❓ DUDAS
 								</label>
 								<textarea
@@ -431,12 +536,58 @@ const Informes = () => {
 									placeholder="Cualquier duda técnica..."
 									value={doubts}
 									onChange={(e) => setDoubts(e.target.value)}
-									style={{ height: "120px", resize: "none", fontSize: "0.85rem" }}
+									style={{
+										height: "120px",
+										resize: "none",
+										fontSize: "0.85rem",
+									}}
 								/>
 							</div>
 						</div>
 
-						<button type="button" onClick={generateReport} disabled={loading} style={{ width: "100%" }}>
+						<div className="grid-cols-2 mt-1">
+							<div className="form-group">
+								<label className="text-muted" style={{ fontSize: "0.8rem" }}>
+									🎯 CANAL DISCORD
+								</label>
+								<select
+									value={selectedWebhook}
+									onChange={(e) => setSelectedWebhook(e.target.value)}
+								>
+									<option value="">-- No enviar --</option>
+									{globalWebhooks.map((w) => (
+										<option key={w.id} value={w.url}>
+											🔗 {w.name}
+										</option>
+									))}
+									<option value="MANUAL">-- Webhook Manual --</option>
+								</select>
+							</div>
+							<div className="form-group">
+								<label className="text-muted" style={{ fontSize: "0.8rem" }}>
+									👤 MENCIONAR
+								</label>
+								<select
+									value={selectedMention}
+									onChange={(e) => setSelectedMention(e.target.value)}
+								>
+									<option value="">-- Nadie --</option>
+									{globalMentions.map((m) => (
+										<option key={m.id} value={m.discordId}>
+											👤 {m.name}
+										</option>
+									))}
+									<option value="MANUAL">-- ID Manual --</option>
+								</select>
+							</div>
+						</div>
+
+						<button
+							type="button"
+							onClick={generateReport}
+							disabled={loading}
+							style={{ width: "100%", marginTop: "1.5rem" }}
+						>
 							{loading ? (
 								<div className="flex-center gap-1">
 									<Loader2 size={18} className="animate-spin" />
@@ -454,7 +605,12 @@ const Informes = () => {
 						<div className="flex-between mb-2">
 							<h3>Vista Previa</h3>
 							<div className="flex-gap-1">
-								<button type="button" className="secondary" onClick={downloadReport} disabled={!report}>
+								<button
+									type="button"
+									className="secondary"
+									onClick={downloadReport}
+									disabled={!report}
+								>
 									<Download size={16} /> Descargar .md
 								</button>
 								<button
@@ -463,8 +619,14 @@ const Informes = () => {
 									onClick={() => sendExistingToDiscord(report)}
 									disabled={!report || sendingDiscord}
 								>
-									{sendingDiscord ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-									<span>{sendingDiscord ? " Enviando..." : " Enviar a Discord"}</span>
+									{sendingDiscord ? (
+										<Loader2 size={16} className="animate-spin" />
+									) : (
+										<Send size={16} />
+									)}
+									<span>
+										{sendingDiscord ? " Enviando..." : " Enviar a Discord"}
+									</span>
 								</button>
 							</div>
 						</div>
@@ -483,7 +645,10 @@ const Informes = () => {
 							{report ? (
 								<RichMarkdownRenderer content={report} />
 							) : (
-								<div className="flex-center text-muted" style={{ height: "100%", textAlign: "center" }}>
+								<div
+									className="flex-center text-muted"
+									style={{ height: "100%", textAlign: "center" }}
+								>
 									El reporte generado aparecerá aquí de forma espectacular...
 								</div>
 							)}
@@ -494,7 +659,10 @@ const Informes = () => {
 				<div className="glass-card">
 					<div className="flex-between mb-2">
 						<h3>
-							<History size={20} style={{ verticalAlign: "middle", marginRight: "0.5rem" }} />
+							<History
+								size={20}
+								style={{ verticalAlign: "middle", marginRight: "0.5rem" }}
+							/>
 							Historial de Informes
 						</h3>
 						<span className="text-muted" style={{ fontSize: "0.85rem" }}>
@@ -502,19 +670,32 @@ const Informes = () => {
 						</span>
 					</div>
 
-					<div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+					<div
+						style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
+					>
 						{reportsArr.length === 0 ? (
-							<div className="text-muted flex-center" style={{ padding: "5rem" }}>
+							<div
+								className="text-muted flex-center"
+								style={{ padding: "5rem" }}
+							>
 								Aún no hay informes generados.
 							</div>
 						) : (
 							reportsArr.map((r) => (
-								<div key={r.id} className="glass-card" style={{ padding: "1.2rem", background: "var(--bg-card)" }}>
+								<div
+									key={r.id}
+									className="glass-card"
+									style={{ padding: "1.2rem", background: "var(--bg-card)" }}
+								>
 									<div className="flex-between">
 										<div style={{ flex: 1 }}>
 											<strong>{r.title}</strong>
-											<div className="text-muted" style={{ fontSize: "0.8rem", marginTop: "0.2rem" }}>
-												{new Date(r.createdAt).toLocaleString()} · {r.provider}/{r.model} · Rol: {r.role}
+											<div
+												className="text-muted"
+												style={{ fontSize: "0.8rem", marginTop: "0.2rem" }}
+											>
+												{new Date(r.createdAt).toLocaleString()} · {r.provider}/
+												{r.model} · Rol: {r.role}
 											</div>
 										</div>
 										<div className="flex-gap-1">
@@ -536,9 +717,15 @@ const Informes = () => {
 											<button
 												className="secondary"
 												title="Ver"
-												onClick={() => setExpandedId(expandedId === r.id ? null : r.id)}
+												onClick={() =>
+													setExpandedId(expandedId === r.id ? null : r.id)
+												}
 											>
-												{expandedId === r.id ? <EyeOff size={16} /> : <Eye size={16} />}
+												{expandedId === r.id ? (
+													<EyeOff size={16} />
+												) : (
+													<Eye size={16} />
+												)}
 											</button>
 											<button
 												className="secondary"
@@ -551,19 +738,33 @@ const Informes = () => {
 										</div>
 									</div>
 									{expandedId === r.id && (
-										<div style={{ marginTop: "1rem", borderTop: "1px solid var(--border-luxe)", paddingTop: "1rem" }}>
+										<div
+											style={{
+												marginTop: "1rem",
+												borderTop: "1px solid var(--border-luxe)",
+												paddingTop: "1rem",
+											}}
+										>
 											{editingReportId === r.id ? (
 												<div>
 													<textarea
 														value={editingContent}
 														onChange={(e) => setEditingContent(e.target.value)}
-														style={{ height: "400px", background: "var(--bg-deep)", color: "var(--text-main)", marginBottom: "1rem" }}
+														style={{
+															height: "400px",
+															background: "var(--bg-deep)",
+															color: "var(--text-main)",
+															marginBottom: "1rem",
+														}}
 													/>
 													<div className="flex-gap-1">
 														<button onClick={saveEditedReport}>
 															<Save size={18} /> Guardar Cambios
 														</button>
-														<button className="secondary" onClick={() => setEditingReportId(null)}>
+														<button
+															className="secondary"
+															onClick={() => setEditingReportId(null)}
+														>
 															<X size={18} /> Cancelar
 														</button>
 													</div>
@@ -571,12 +772,18 @@ const Informes = () => {
 											) : (
 												<div>
 													<div className="flex-between mb-1">
-														<span className="text-muted" style={{ fontSize: "0.8rem" }}>
+														<span
+															className="text-muted"
+															style={{ fontSize: "0.8rem" }}
+														>
 															Vista de Lectura (Habilitado para edición)
 														</span>
 														<button
 															className="secondary"
-															style={{ padding: "0.2rem 0.6rem", fontSize: "0.8rem" }}
+															style={{
+																padding: "0.2rem 0.6rem",
+																fontSize: "0.8rem",
+															}}
 															onClick={() => {
 																setEditingReportId(r.id);
 																setEditingContent(r.content);

@@ -1,7 +1,6 @@
 import axios from "axios";
-import type { IAIService, IAIRatingReport } from "./ai.interface.js";
-
 import { SettingsService } from "../settings.service.js";
+import type { IAIRatingReport, IAIService } from "./ai.interface.js";
 
 export class OpenRouterService implements IAIService {
 	private baseUrl = "https://openrouter.ai/api/v1";

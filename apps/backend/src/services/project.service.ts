@@ -1,9 +1,9 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { db } from "../db/index.js";
-import { projects, projectFiles, sources } from "../db/schema.js";
 import { eq } from "drizzle-orm";
 import ignore from "ignore";
+import { db } from "../db/index.js";
+import { projectFiles, projects, sources } from "../db/schema.js";
 
 const ALLOWED_EXTENSIONS = [
 	".ts",
@@ -38,7 +38,11 @@ export class ProjectService {
 	}
 
 	static async getProject(id: number) {
-		const res = await db.select().from(projects).where(eq(projects.id, id)).limit(1);
+		const res = await db
+			.select()
+			.from(projects)
+			.where(eq(projects.id, id))
+			.limit(1);
 		return res[0];
 	}
 
@@ -74,7 +78,7 @@ export class ProjectService {
 
 		// 4. Indexar archivos en segundo plano (simulado RAG simple)
 		// No esperamos a que termine para responder al cliente
-		this.indexProjectFiles(project.id, rootPath).catch((err) =>
+		ProjectService.indexProjectFiles(project.id, rootPath).catch((err) =>
 			console.error("Error indexing project files:", err),
 		);
 
@@ -87,7 +91,7 @@ export class ProjectService {
 		rootPath: string,
 		changelogPath: string,
 	) {
-		const oldProject = await this.getProject(id);
+		const oldProject = await ProjectService.getProject(id);
 		if (!oldProject) throw new Error("Proyecto no encontrado");
 
 		// 1. Actualizar el proyecto
@@ -106,20 +110,22 @@ export class ProjectService {
 
 		// 3. Si la ruta raíz cambió, re-indexar archivos
 		if (oldProject.rootPath !== rootPath) {
-			this.indexProjectFiles(id, rootPath).catch((err) =>
+			ProjectService.indexProjectFiles(id, rootPath).catch((err) =>
 				console.error("Error re-indexing project files:", err),
 			);
 		}
 
-		return await this.getProject(id);
+		return await ProjectService.getProject(id);
 	}
 
 	static async indexProjectFiles(projectId: number, rootPath: string) {
 		// Limpiar archivos anteriores si existen (re-indexación)
 		await db.delete(projectFiles).where(eq(projectFiles.projectId, projectId));
 
-		// @ts-ignore
-		const ig = (ignore as any).default ? (ignore as any).default() : (ignore as any)();
+		// @ts-expect-error
+		const ig = (ignore as any).default
+			? (ignore as any).default()
+			: (ignore as any)();
 
 		// Cargar patrones de ignore (fijos de seguridad + archivos del proyecto)
 		const SECURITY_IGNORES = [
@@ -154,7 +160,9 @@ export class ProjectService {
 			const entries = await fs.readdir(dir, { withFileTypes: true });
 			for (const entry of entries) {
 				const fullPath = path.join(dir, entry.name);
-				const relativePath = path.relative(rootPath, fullPath).replace(/\\/g, "/");
+				const relativePath = path
+					.relative(rootPath, fullPath)
+					.replace(/\\/g, "/");
 
 				// Verificar si el archivo/carpeta debe ser ignorado
 				if (ig.ignores(relativePath) || ig.ignores(relativePath + "/")) {
@@ -190,7 +198,9 @@ export class ProjectService {
 					content,
 				});
 			}
-			console.log(`Project ${projectId} indexed: ${filesToIndex.length} files.`);
+			console.log(
+				`Project ${projectId} indexed: ${filesToIndex.length} files.`,
+			);
 		} catch (error) {
 			console.error(`Failed to index project ${projectId}:`, error);
 		}
@@ -218,7 +228,10 @@ export class ProjectService {
 		// 1. Eliminar archivos indexados
 		await db.delete(projectFiles).where(eq(projectFiles.projectId, id));
 		// 2. Desvincular fuentes
-		await db.update(sources).set({ projectId: null }).where(eq(sources.projectId, id));
+		await db
+			.update(sources)
+			.set({ projectId: null })
+			.where(eq(sources.projectId, id));
 		// 3. Eliminar proyecto
 		await db.delete(projects).where(eq(projects.id, id));
 	}

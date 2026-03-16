@@ -1,17 +1,17 @@
-import express from "express";
+import fs from "node:fs/promises";
+import { createServer } from "node:http";
+import os from "node:os";
+import path from "node:path";
 import cors from "cors";
 import dotenv from "dotenv";
+import express from "express";
 import morgan from "morgan";
+import { Server } from "socket.io";
 import { AIServiceFactory } from "./services/ai/ai.factory.js";
 import { PromptManager } from "./services/ai/prompt.manager.js";
 import { DiscordWebhookManager } from "./services/discord/webhook.manager.js";
-import { schedulerService } from "./services/scheduler.service.js";
 import { ProjectService } from "./services/project.service.js";
-import fs from "node:fs/promises";
-import path from "node:path";
-import os from "node:os";
-import { createServer } from "node:http";
-import { Server } from "socket.io";
+import { schedulerService } from "./services/scheduler.service.js";
 
 dotenv.config();
 
@@ -28,7 +28,11 @@ const discordManager = new DiscordWebhookManager();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
 	cors: {
-		origin: ["http://localhost:5173", "http://localhost:5174", "http://localhost:3000"],
+		origin: [
+			"http://localhost:5173",
+			"http://localhost:5174",
+			"http://localhost:3000",
+		],
 		methods: ["GET", "POST"],
 	},
 });
@@ -70,7 +74,8 @@ app.post("/api/prompts", async (req, res) => {
 			});
 		res.json({ success: true });
 	} catch (error) {
-		const errorMessage = error instanceof Error ? error.message : "Error desconocido";
+		const errorMessage =
+			error instanceof Error ? error.message : "Error desconocido";
 		res.status(500).json({ error: errorMessage });
 	}
 });
@@ -81,7 +86,8 @@ app.delete("/api/prompts/:id", async (req, res) => {
 		await db.delete(prompts).where(eq(prompts.id, id));
 		res.json({ success: true });
 	} catch (error) {
-		const errorMessage = error instanceof Error ? error.message : "Error desconocido";
+		const errorMessage =
+			error instanceof Error ? error.message : "Error desconocido";
 		res.status(500).json({ error: errorMessage });
 	}
 });
@@ -93,22 +99,25 @@ app.get("/api/models", async (req, res) => {
 		const models = await service.getModels();
 		res.json({ models });
 	} catch (error) {
-		const errorMessage = error instanceof Error ? error.message : "Error desconocido";
+		const errorMessage =
+			error instanceof Error ? error.message : "Error desconocido";
 		res.status(400).json({ error: errorMessage });
 	}
 });
 
+import { desc, eq } from "drizzle-orm";
 import { db } from "./db/index.js";
 import {
-	reports,
-	prompts,
-	sources,
-	scheduledTasks,
 	aiModels,
-	projects,
+	discordMentions,
+	discordWebhooks,
 	projectFiles,
+	projects,
+	prompts,
+	reports,
+	scheduledTasks,
+	sources,
 } from "./db/schema.js";
-import { eq, desc } from "drizzle-orm";
 
 // AI Models (Saved) Endpoints
 app.get("/api/ai-models", async (_req, res) => {
@@ -122,7 +131,8 @@ app.post("/api/ai-models", async (req, res) => {
 		await db.insert(aiModels).values({ provider, modelId, displayName });
 		res.json({ success: true });
 	} catch (error) {
-		const errorMessage = error instanceof Error ? error.message : "Error desconocido";
+		const errorMessage =
+			error instanceof Error ? error.message : "Error desconocido";
 		res.status(500).json({ error: errorMessage });
 	}
 });
@@ -133,7 +143,68 @@ app.delete("/api/ai-models/:id", async (req, res) => {
 		await db.delete(aiModels).where(eq(aiModels.id, Number(id)));
 		res.json({ success: true });
 	} catch (error) {
-		const errorMessage = error instanceof Error ? error.message : "Error desconocido";
+		const errorMessage =
+			error instanceof Error ? error.message : "Error desconocido";
+		res.status(500).json({ error: errorMessage });
+	}
+});
+
+// Discord Webhooks Endpoints
+app.get("/api/discord-webhooks", async (_req, res) => {
+	const all = await db.select().from(discordWebhooks);
+	res.json(all);
+});
+
+app.post("/api/discord-webhooks", async (req, res) => {
+	const { name, url } = req.body;
+	try {
+		await db.insert(discordWebhooks).values({ name, url });
+		res.json({ success: true });
+	} catch (error) {
+		const errorMessage =
+			error instanceof Error ? error.message : "Error desconocido";
+		res.status(500).json({ error: errorMessage });
+	}
+});
+
+app.delete("/api/discord-webhooks/:id", async (req, res) => {
+	const { id } = req.params;
+	try {
+		await db.delete(discordWebhooks).where(eq(discordWebhooks.id, Number(id)));
+		res.json({ success: true });
+	} catch (error) {
+		const errorMessage =
+			error instanceof Error ? error.message : "Error desconocido";
+		res.status(500).json({ error: errorMessage });
+	}
+});
+
+// Discord Mentions Endpoints
+app.get("/api/discord-mentions", async (_req, res) => {
+	const all = await db.select().from(discordMentions);
+	res.json(all);
+});
+
+app.post("/api/discord-mentions", async (req, res) => {
+	const { name, discordId } = req.body;
+	try {
+		await db.insert(discordMentions).values({ name, discordId });
+		res.json({ success: true });
+	} catch (error) {
+		const errorMessage =
+			error instanceof Error ? error.message : "Error desconocido";
+		res.status(500).json({ error: errorMessage });
+	}
+});
+
+app.delete("/api/discord-mentions/:id", async (req, res) => {
+	const { id } = req.params;
+	try {
+		await db.delete(discordMentions).where(eq(discordMentions.id, Number(id)));
+		res.json({ success: true });
+	} catch (error) {
+		const errorMessage =
+			error instanceof Error ? error.message : "Error desconocido";
 		res.status(500).json({ error: errorMessage });
 	}
 });
@@ -150,7 +221,8 @@ app.post("/api/sources", async (req, res) => {
 		await db.insert(sources).values({ name, path });
 		res.json({ success: true });
 	} catch (error) {
-		const errorMessage = error instanceof Error ? error.message : "Error desconocido";
+		const errorMessage =
+			error instanceof Error ? error.message : "Error desconocido";
 		res.status(500).json({ error: errorMessage });
 	}
 });
@@ -161,7 +233,8 @@ app.delete("/api/sources/:id", async (req, res) => {
 		await db.delete(sources).where(eq(sources.id, Number(id)));
 		res.json({ success: true });
 	} catch (error) {
-		const errorMessage = error instanceof Error ? error.message : "Error desconocido";
+		const errorMessage =
+			error instanceof Error ? error.message : "Error desconocido";
 		res.status(500).json({ error: errorMessage });
 	}
 });
@@ -179,7 +252,8 @@ app.get("/api/sources/:id/content", async (req, res) => {
 		const content = await fs.readFile(source[0].path, "utf-8");
 		res.json({ content });
 	} catch (error) {
-		const errorMessage = error instanceof Error ? error.message : "Error desconocido";
+		const errorMessage =
+			error instanceof Error ? error.message : "Error desconocido";
 		res.status(500).json({ error: errorMessage });
 	}
 });
@@ -209,12 +283,11 @@ app.get("/api/fs/ls", async (req, res) => {
 			});
 		res.json(result);
 	} catch (error) {
-		const errorMessage = error instanceof Error ? error.message : "Error desconocido";
+		const errorMessage =
+			error instanceof Error ? error.message : "Error desconocido";
 		res.status(500).json({ error: errorMessage });
 	}
 });
-
-
 
 // Projects Endpoints
 app.get("/api/projects", async (_req, res) => {
@@ -281,7 +354,8 @@ app.delete("/api/reports/:id", async (req, res) => {
 		await db.delete(reports).where(eq(reports.id, Number(id)));
 		res.json({ success: true });
 	} catch (error) {
-		const errorMessage = error instanceof Error ? error.message : "Error desconocido";
+		const errorMessage =
+			error instanceof Error ? error.message : "Error desconocido";
 		res.status(500).json({ error: errorMessage });
 	}
 });
@@ -296,7 +370,8 @@ app.put("/api/reports/:id", async (req, res) => {
 			.where(eq(reports.id, Number(id)));
 		res.json({ success: true });
 	} catch (error) {
-		const errorMessage = error instanceof Error ? error.message : "Error desconocido";
+		const errorMessage =
+			error instanceof Error ? error.message : "Error desconocido";
 		res.status(500).json({ error: errorMessage });
 	}
 });
@@ -317,7 +392,8 @@ app.post("/api/tasks", async (req, res) => {
 		schedulerService.scheduleTask(inserted);
 		res.json({ success: true });
 	} catch (error) {
-		const errorMessage = error instanceof Error ? error.message : "Error desconocido";
+		const errorMessage =
+			error instanceof Error ? error.message : "Error desconocido";
 		res.status(500).json({ error: errorMessage });
 	}
 });
@@ -329,7 +405,8 @@ app.delete("/api/tasks/:id", async (req, res) => {
 		await db.delete(scheduledTasks).where(eq(scheduledTasks.id, Number(id)));
 		res.json({ success: true });
 	} catch (error) {
-		const errorMessage = error instanceof Error ? error.message : "Error desconocido";
+		const errorMessage =
+			error instanceof Error ? error.message : "Error desconocido";
 		res.status(500).json({ error: errorMessage });
 	}
 });
@@ -356,21 +433,33 @@ app.put("/api/tasks/:id", async (req, res) => {
 
 		res.json({ success: true });
 	} catch (error) {
-		const errorMessage = error instanceof Error ? error.message : "Error desconocido";
+		const errorMessage =
+			error instanceof Error ? error.message : "Error desconocido";
 		res.status(500).json({ error: errorMessage });
 	}
 });
 
 app.post("/api/generate", async (req, res) => {
-	const { provider, text, model, role, socketId, today, blockers, doubts, projectId } =
-		req.body;
+	const {
+		provider,
+		text,
+		model,
+		role,
+		socketId,
+		today,
+		blockers,
+		doubts,
+		projectId,
+	} = req.body;
 	try {
 		const service = AIServiceFactory.getService(provider);
 		const systemPrompt = await promptManager.getPrompt(role);
 
 		let projectContext = "";
 		if (projectId) {
-			projectContext = await ProjectService.getProjectContext(Number(projectId));
+			projectContext = await ProjectService.getProjectContext(
+				Number(projectId),
+			);
 		}
 
 		const emitProgress = (message: string) => {
@@ -447,10 +536,13 @@ import { SettingsService } from "./services/settings.service.js";
 
 app.get("/api/settings", async (_req, res) => {
 	const allSettings = await SettingsService.getAll();
-	const settingsMap = allSettings.reduce((acc: Record<string, string>, curr) => {
-		acc[curr.key] = curr.value || "";
-		return acc;
-	}, {});
+	const settingsMap = allSettings.reduce(
+		(acc: Record<string, string>, curr) => {
+			acc[curr.key] = curr.value || "";
+			return acc;
+		},
+		{},
+	);
 	res.json(settingsMap);
 });
 

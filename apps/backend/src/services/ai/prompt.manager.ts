@@ -1,6 +1,6 @@
+import { eq } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import { prompts } from "../../db/schema.js";
-import { eq } from "drizzle-orm";
 
 export const DEFAULT_PROMPTS = {
 	PRODUCT_OWNER: `Actúa como un Product Owner experto. 

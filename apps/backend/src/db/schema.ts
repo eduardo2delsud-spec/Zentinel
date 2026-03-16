@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const reports = sqliteTable("reports", {
 	id: integer("id").primaryKey({ autoIncrement: true }),
@@ -47,7 +47,9 @@ export const projects = sqliteTable("projects", {
 	name: text("name").notNull(),
 	description: text("description"),
 	rootPath: text("root_path"), // Ruta de la carpeta del proyecto
-	changelogSourceId: integer("changelog_source_id").references(() => sources.id),
+	changelogSourceId: integer("changelog_source_id").references(
+		() => sources.id,
+	),
 	createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
 		() => new Date(),
 	),
@@ -86,6 +88,24 @@ export const scheduledTasks = sqliteTable("scheduled_tasks", {
 	discordMentionId: text("discord_mention_id"),
 	projectId: integer("project_id").references(() => projects.id),
 	active: integer("active", { mode: "boolean" }).notNull().default(true),
+	createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
+		() => new Date(),
+	),
+});
+
+export const discordWebhooks = sqliteTable("discord_webhooks", {
+	id: integer("id").primaryKey({ autoIncrement: true }),
+	name: text("name").notNull(),
+	url: text("url").notNull(),
+	createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
+		() => new Date(),
+	),
+});
+
+export const discordMentions = sqliteTable("discord_mentions", {
+	id: integer("id").primaryKey({ autoIncrement: true }),
+	name: text("name").notNull(),
+	discordId: text("discord_id").notNull(),
 	createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
 		() => new Date(),
 	),

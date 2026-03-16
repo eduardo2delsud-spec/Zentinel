@@ -1,12 +1,12 @@
-import { NavLink } from "react-router-dom";
 import {
+	Clock,
 	Files,
 	FileText,
-	Clock,
+	LayoutDashboard,
 	Settings as SettingsIcon,
 	Shield,
-	LayoutDashboard,
 } from "lucide-react";
+import { NavLink } from "react-router-dom";
 
 const Sidebar = () => {
 	return (
@@ -47,7 +47,6 @@ const Sidebar = () => {
 					<Clock />
 					<span>Tareas</span>
 				</NavLink>
-
 
 				<NavLink
 					to="/configuracion"

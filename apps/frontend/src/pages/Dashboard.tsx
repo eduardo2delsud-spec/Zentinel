@@ -1,27 +1,27 @@
-import { useState, useEffect } from "react";
 import axios from "axios";
 import {
-	Files,
-	History,
-	Clock,
-	ShieldCheck,
-	Settings,
-	MessageSquare,
-	FileText,
-	TrendingUp,
 	Brain,
+	Clock,
+	Files,
+	FileText,
+	History,
+	MessageSquare,
+	Settings,
+	ShieldCheck,
+	TrendingUp,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 import {
-	AreaChart,
 	Area,
+	AreaChart,
+	Bar,
+	BarChart,
+	CartesianGrid,
+	Cell,
+	ResponsiveContainer,
+	Tooltip,
 	XAxis,
 	YAxis,
-	CartesianGrid,
-	Tooltip,
-	ResponsiveContainer,
-	BarChart,
-	Bar,
-	Cell,
 } from "recharts";
 
 const API_BASE = "http://localhost:3001/api";
@@ -65,10 +65,8 @@ const Dashboard = () => {
 				);
 				const avgSentiment =
 					reports.length > 0
-						? reports.reduce(
-								(acc, r) => acc + (r.sentimentScore || 0),
-								0,
-							) / reports.length
+						? reports.reduce((acc, r) => acc + (r.sentimentScore || 0), 0) /
+							reports.length
 						: 0;
 
 				// Formatear datos para el gráfico (últimos 7 informes)
@@ -365,10 +363,10 @@ const Dashboard = () => {
 							</strong>
 						</div>
 						<p className="text-muted" style={{ marginLeft: "2.75rem" }}>
-							En la sección de <strong>Proyecto</strong>, registra la carpeta raíz
-							de tu código. Zentinel indexará tus archivos automáticamente (RAG)
-							y vinculará tu <code>CHANGELOG.md</code> para que la IA tenga
-							contexto técnico total de tus desarrollos.
+							En la sección de <strong>Proyecto</strong>, registra la carpeta
+							raíz de tu código. Zentinel indexará tus archivos automáticamente
+							(RAG) y vinculará tu <code>CHANGELOG.md</code> para que la IA
+							tenga contexto técnico total de tus desarrollos.
 						</p>
 					</section>
 
