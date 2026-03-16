@@ -4,6 +4,8 @@ Todas las actividades importantes del proyecto se registran aquí.
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-03-16
+
 ### Added (Nuevo)
 - **Progreso en Tiempo Real**: Integración de Socket.io en backend y frontend para mostrar el estado de generación de informes. [2026-03-16]
 - **Renderizado de Markdown Enriquecido**: Soporte para tablas (GFM), diagramas de Mermaid y resaltado de sintaxis (react-syntax-highlighter). [2026-03-16]
