@@ -10,6 +10,20 @@ import { DiscordWebhookManager } from "./discord/webhook.manager.js";
 const promptManager = new PromptManager();
 const discordManager = new DiscordWebhookManager();
 
+interface Task {
+	id: number;
+	name: string;
+	cron: string;
+	sourceId: number;
+	roleId: string;
+	provider: string;
+	model: string;
+	discordWebhookUrl?: string | null;
+	discordMentionId?: string | null;
+	projectId?: number | null;
+	active: boolean;
+}
+
 class SchedulerService {
 	private jobs: Map<number, cron.ScheduledTask> = new Map();
 
@@ -24,7 +38,7 @@ class SchedulerService {
 		}
 	}
 
-	scheduleTask(task: any) {
+	scheduleTask(task: Task) {
 		if (this.jobs.has(task.id)) {
 			this.jobs.get(task.id)?.stop();
 		}
@@ -81,7 +95,7 @@ class SchedulerService {
 		this.jobs.set(task.id, job);
 	}
 
-	stopTask(id: any) {
+	stopTask(id: number | string) {
 		const numericId = Number(id);
 		this.jobs.get(numericId)?.stop();
 		this.jobs.delete(numericId);

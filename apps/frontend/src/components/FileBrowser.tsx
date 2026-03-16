@@ -45,7 +45,9 @@ const FileBrowser = ({ onSelect, onClose }: FileBrowserProps) => {
 	}, [loadFiles]);
 
 	useEffect(() => {
-		loadRoot();
+		(async () => {
+			await loadRoot();
+		})();
 	}, [loadRoot]);
 
 	const handleDirClick = (path: string) => {
@@ -70,7 +72,7 @@ const FileBrowser = ({ onSelect, onClose }: FileBrowserProps) => {
 			>
 				<div className="flex-between mb-2">
 					<h3>📂 Explorador de Archivos</h3>
-					<button className="secondary" onClick={onClose}>
+					<button type="button" className="secondary" onClick={onClose}>
 						&times;
 					</button>
 				</div>
@@ -147,15 +149,26 @@ const FileBrowser = ({ onSelect, onClose }: FileBrowserProps) => {
 							Cargando...
 						</div>
 					) : (
-						filteredFiles.map((file, idx) => (
+						filteredFiles.map((file) => (
 							<div
-								key={idx}
+								key={file.path}
 								className="file-item"
+								role="button"
+								tabIndex={0}
 								onClick={() =>
 									file.isDirectory
 										? handleDirClick(file.path)
 										: onSelect(file.path)
 								}
+								onKeyDown={(e) => {
+									if (e.key === "Enter" || e.key === " ") {
+										if (file.isDirectory) {
+											handleDirClick(file.path);
+										} else {
+											onSelect(file.path);
+										}
+									}
+								}}
 								style={{
 									display: "flex",
 									alignItems: "center",

@@ -23,6 +23,7 @@ Todas las actividades importantes del proyecto se registran aquí.
 - **Gestión de Proyectos y RAG**: Nueva sección "Proyecto" para crear, editar y indexar código como RAG. [2026-03-16]
 
 ### Changed (Cambio)
+- **Limpieza de Código y Estándares**: Ejecución de Biome para corregir errores de accesibilidad, tipado estricto (eliminación de `any`) y mejores prácticas de React. [2026-03-16]
 - **CRUD Optimizado**: Proyectos y Tareas Programadas ahora son totalmente editables, facilitando ajustes de configuración sin re-crear. [2026-03-16]
 - **Refinamiento de UI**: Mejora visual con iconos contextuales (`Edit`, `Save`, `X`, `Plus`) y organización por pestañas en "Informes" y "Configuración". [2026-03-16]
 - **Estructura de Base de Datos**: Actualización de esquema (SQLite/Drizzle) para soportar proyectos, archivos RAG, tokens y métricas de sentimiento. [2026-03-16]

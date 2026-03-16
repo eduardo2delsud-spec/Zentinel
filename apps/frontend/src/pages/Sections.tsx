@@ -174,7 +174,7 @@ export const Proyecto = () => {
 	const fetchSourcePath = async (sourceId: number) => {
 		try {
 			const { data } = await axios.get(`${API_BASE}/sources`);
-			const source = data.find((s: any) => s.id === sourceId);
+			const source = data.find((s: Source) => s.id === sourceId);
 			if (source) setNewChangelogPath(source.path);
 		} catch {
 			console.error("Error fetching source path");
@@ -527,7 +527,7 @@ export const Tareas = () => {
 		setEditingTaskId(null);
 	};
 
-	const startEditTask = (t: any) => {
+	const startEditTask = (t: Task) => {
 		setEditingTaskId(t.id);
 		setTaskName(t.name);
 		const cronParts = t.cron.split(" ");

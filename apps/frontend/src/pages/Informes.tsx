@@ -278,8 +278,9 @@ const Informes = () => {
 						: selectedMention,
 			});
 			alert("Enviado a Discord con éxito");
-		} catch (err: any) {
-			alert("Error al enviar a Discord: " + err.message);
+		} catch (err) {
+			const errorMessage = err instanceof Error ? err.message : String(err);
+			alert("Error al enviar a Discord: " + errorMessage);
 		} finally {
 			setSendingDiscord(false);
 		}

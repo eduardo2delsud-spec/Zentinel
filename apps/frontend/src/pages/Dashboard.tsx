@@ -295,9 +295,9 @@ const Dashboard = () => {
 								cursor={{ fill: "rgba(255,255,255,0.05)" }}
 							/>
 							<Bar dataKey="health" radius={[4, 4, 0, 0]}>
-								{chartData.map((entry, index) => (
+								{chartData.map((entry) => (
 									<Cell
-										key={`cell-${index}`}
+										key={`cell-${entry.date}`}
 										fill={
 											entry.health > 80
 												? "#22c55e"

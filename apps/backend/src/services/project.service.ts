@@ -122,10 +122,9 @@ export class ProjectService {
 		// Limpiar archivos anteriores si existen (re-indexación)
 		await db.delete(projectFiles).where(eq(projectFiles.projectId, projectId));
 
-		// @ts-expect-error
-		const ig = (ignore as any).default
-			? (ignore as any).default()
-			: (ignore as any)();
+		// @ts-ignore
+		const ignoreCtor = ignore.default || ignore;
+		const ig = ignoreCtor();
 
 		// Cargar patrones de ignore (fijos de seguridad + archivos del proyecto)
 		const SECURITY_IGNORES = [
