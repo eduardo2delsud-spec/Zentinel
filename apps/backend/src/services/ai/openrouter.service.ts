@@ -1,5 +1,5 @@
 import axios from "axios";
-import { IAIService, IAIRatingReport } from "./ai.interface.js";
+import type { IAIService, IAIRatingReport } from "./ai.interface.js";
 
 import { SettingsService } from "../settings.service.js";
 

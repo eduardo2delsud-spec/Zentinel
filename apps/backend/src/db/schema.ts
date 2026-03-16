@@ -8,6 +8,8 @@ export const reports = sqliteTable("reports", {
 	provider: text("provider").notNull(),
 	model: text("model").notNull(),
 	role: text("role").notNull(),
+	tokensUsed: integer("tokens_used").default(0),
+	sentimentScore: integer("sentiment_score").default(0), // 0-100 (humor/salud)
 	createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
 		() => new Date(),
 	),

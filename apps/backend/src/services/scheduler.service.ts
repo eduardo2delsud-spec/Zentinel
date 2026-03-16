@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { AIServiceFactory } from "./ai/ai.factory.js";
 import { PromptManager } from "./ai/prompt.manager.js";
 import { DiscordWebhookManager } from "./discord/webhook.manager.js";
-import fs from "fs/promises";
+import fs from "node:fs/promises";
 
 const promptManager = new PromptManager();
 const discordManager = new DiscordWebhookManager();

@@ -2,7 +2,6 @@ import { NavLink } from "react-router-dom";
 import {
 	Files,
 	FileText,
-	MessageSquare,
 	Clock,
 	History,
 	Settings as SettingsIcon,
@@ -48,14 +47,6 @@ const Sidebar = () => {
 				>
 					<Clock />
 					<span>Tareas</span>
-				</NavLink>
-
-				<NavLink
-					to="/discord"
-					className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
-				>
-					<MessageSquare />
-					<span>Discord</span>
 				</NavLink>
 
 				<NavLink

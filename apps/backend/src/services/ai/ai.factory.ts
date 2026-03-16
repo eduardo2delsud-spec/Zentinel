@@ -1,4 +1,4 @@
-import { IAIService } from "./ai.interface.js";
+import type { IAIService } from "./ai.interface.js";
 import { OllamaService } from "./ollama.service.js";
 import { OpenRouterService } from "./openrouter.service.js";
 

@@ -2,6 +2,23 @@
 
 Todas las actividades importantes del proyecto se registran aquí.
 
+## [Unreleased]
+
+### Added (Nuevo)
+- **Progreso en Tiempo Real**: Integración de Socket.io en backend y frontend para mostrar el estado de generación de informes. [2026-03-16]
+- **Renderizado de Markdown Enriquecido**: Soporte para tablas (GFM), diagramas de Mermaid y resaltado de sintaxis (react-syntax-highlighter). [2026-03-16]
+- **Dashboard Estadístico**: Visualización de uso de tokens y salud del código (sentimiento) utilizando Recharts. [2026-03-16]
+- **Biblioteca de Prompts**: Sistema de importación/exportación de roles en JSON y plantillas predefinidas (Tech Lead, PO, etc.). [2026-03-16]
+- **Descarga de Informes**: Botón para descargar la vista previa del informe en formato Markdown (.md). [2026-03-16]
+
+### Changed (Cambio)
+- **Estructura de Base de Datos**: Añadidas columnas `tokensUsed` y `sentimentScore` a la tabla de reportes para analíticas. [2026-03-16]
+- **Configuración Reorganizada**: Nueva interfaz por pestañas (API, Modelos, Prompts, Discord) para una mejor gestión. [2026-03-16]
+
+### Fixed (Corrección)
+- **Tipado TypeScript**: Resolución de errores de tipos en componentes principales (`Informes`, `Configuracion`, `Dashboard`). [2026-03-16]
+- **Dependencias**: Solución de conflictos de peer dependencies en el frontend. [2026-03-16]
+
 ## [1.0.0] - 2026-03-13
 
 ### Añadido

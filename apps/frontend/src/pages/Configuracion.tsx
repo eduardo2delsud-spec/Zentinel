@@ -1,6 +1,18 @@
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
-import { Plus, Trash2, Save, Key, Bot, FileText, Cpu } from "lucide-react";
+import { DiscordSettings } from "./Sections";
+import {
+	Plus,
+	Trash2,
+	Save,
+	Key,
+	Bot,
+	FileText,
+	Cpu,
+	Download,
+	Upload,
+	MessageSquare,
+} from "lucide-react";
 
 const API_BASE = "http://localhost:3001/api";
 
@@ -17,7 +29,7 @@ interface AIModel {
 	displayName: string;
 }
 
-type ConfigTab = "api" | "modelos" | "prompts";
+type ConfigTab = "api" | "modelos" | "prompts" | "discord";
 
 const PROVIDER_COLORS: Record<string, string> = {
 	ollama: "#22c55e",
@@ -418,15 +430,116 @@ const PromptsSection = () => {
 							según el rol seleccionado.
 						</p>
 					</div>
-					<button
-						className="secondary"
-						onClick={() => {
-							setEditingPrompt({ id: "", name: "", content: "" });
-							setIsNewPrompt(true);
-						}}
+					<div className="flex-gap-1">
+						<button
+							className="secondary"
+							onClick={async () => {
+								const { data } = await axios.get(`${API_BASE}/prompts`);
+								const blob = new Blob([JSON.stringify(data.roles, null, 2)], {
+									type: "application/json",
+								});
+								const url = URL.createObjectURL(blob);
+								const a = document.createElement("a");
+								a.href = url;
+								a.download = `zentinel-prompts-${new Date().toISOString().split("T")[0]}.json`;
+								a.click();
+							}}
+						>
+							<Download size={18} /> Exportar
+						</button>
+						<label
+							className="button secondary"
+							style={{
+								cursor: "pointer",
+								display: "flex",
+								alignItems: "center",
+								gap: "0.5rem",
+							}}
+						>
+							<Upload size={18} /> Importar
+							<input
+								type="file"
+								accept=".json"
+								style={{ display: "none" }}
+								onChange={async (e) => {
+									const file = e.target.files?.[0];
+									if (!file) return;
+									const reader = new FileReader();
+									reader.onload = async (evt) => {
+										try {
+											const imported = JSON.parse(evt.target?.result as string);
+											for (const p of imported) {
+												await axios.post(`${API_BASE}/prompts`, p);
+											}
+											loadPrompts();
+											alert("Prompts importados con éxito");
+										} catch (_err) {
+											alert("Error al importar el archivo");
+										}
+									};
+									reader.readAsText(file);
+								}}
+							/>
+						</label>
+						<button
+							className="secondary"
+							onClick={() => {
+								setEditingPrompt({ id: "", name: "", content: "" });
+								setIsNewPrompt(true);
+							}}
+						>
+							<Plus size={18} /> Nuevo Rol
+						</button>
+					</div>
+				</div>
+
+				<div style={{ marginBottom: "1.5rem" }}>
+					<h4
+						className="text-muted"
+						style={{ fontSize: "0.85rem", marginBottom: "1rem" }}
 					>
-						<Plus size={18} /> Nuevo Rol
-					</button>
+						💡 Plantillas Rápidas
+					</h4>
+					<div className="flex-gap-1" style={{ flexWrap: "wrap" }}>
+						{[
+							{
+								id: "TECH_LEAD",
+								name: "Tech Lead",
+								content:
+									"Actúa como un Tech Lead senior. Analiza el changelog buscando deuda técnica, riesgos de arquitectura y calidad de código.",
+							},
+							{
+								id: "PRODUCT_OWNER",
+								name: "Product Owner",
+								content:
+									"Actúa como Product Owner. Traduce los cambios técnicos a valor de negocio y resumen para stakeholders.",
+							},
+							{
+								id: "SECURITY_AUDIT",
+								name: "Auditoría de Seguridad",
+								content:
+									"Actúa como experto en seguridad. Analiza cada cambio buscando potenciales vulnerabilidades (SQLi, XSS, fugas de datos).",
+							},
+							{
+								id: "SRE_ENGINEER",
+								name: "Ingeniero SRE",
+								content:
+									"Actúa como Ingeniero de Fiabilidad. Evalúa el impacto de los cambios en la escalabilidad y disponibilidad del sistema.",
+							},
+						].map((tpl) => (
+							<button
+								key={tpl.id}
+								className="secondary"
+								style={{ fontSize: "0.8rem", padding: "0.5rem 0.8rem" }}
+								onClick={() => {
+									setEditingPrompt(tpl);
+									setIsNewPrompt(true);
+								}}
+							>
+								{tpl.name}
+							</button>
+						))}
+					</div>
 				</div>
 
 				<div
@@ -561,6 +674,7 @@ const TAB_ITEMS: { key: ConfigTab; label: string; icon: React.ReactNode }[] = [
 	{ key: "api", label: "Claves API", icon: <Key size={18} /> },
 	{ key: "modelos", label: "Modelos", icon: <Cpu size={18} /> },
 	{ key: "prompts", label: "Prompts", icon: <FileText size={18} /> },
+	{ key: "discord", label: "Discord", icon: <MessageSquare size={18} /> },
 ];
 
 const Configuracion = () => {
@@ -596,6 +710,25 @@ const Configuracion = () => {
 			{activeTab === "api" && <ApiSection />}
 			{activeTab === "modelos" && <ModelosSection />}
 			{activeTab === "prompts" && <PromptsSection />}
+			{activeTab === "discord" && (
+				<div className="glass-card">
+					<h3>
+						<MessageSquare
+							size={20}
+							style={{ verticalAlign: "middle", marginRight: "0.5rem" }}
+						/>
+						Configuración de Discord
+					</h3>
+					<p
+						className="text-muted"
+						style={{ fontSize: "0.85rem", marginBottom: "1.5rem" }}
+					>
+						Configura el webhook global para recibir las notificaciones de los
+						informes programados.
+					</p>
+					<DiscordSettings />
+				</div>
+			)}
 		</div>
 	);
 };

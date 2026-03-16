@@ -11,7 +11,7 @@ export class SettingsService {
 				.where(eq(settings.key, key))
 				.get();
 			return result?.value || null;
-		} catch (error) {
+		} catch (_error) {
 			return null;
 		}
 	}

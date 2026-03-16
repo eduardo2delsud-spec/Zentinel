@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
-import { Send, Sparkles } from "lucide-react";
+import { Send, Sparkles, Download, Loader2 } from "lucide-react";
+import { io } from "socket.io-client";
+import { RichMarkdownRenderer } from "../components/RichMarkdownRenderer";
 
 const API_BASE = "http://localhost:3001/api";
 
@@ -30,6 +32,25 @@ const Informes = () => {
 
 	const [sourcesArr, setSourcesArr] = useState<Source[]>([]);
 	const [selectedSourceId, setSelectedSourceId] = useState("");
+	const [progress, setProgress] = useState("");
+	const [socketId, setSocketId] = useState("");
+
+	useEffect(() => {
+		const newSocket = io("http://localhost:3001");
+
+		newSocket.on("connect", () => {
+			console.log("Connected to WebSocket:", newSocket.id);
+			setSocketId(newSocket.id || "");
+		});
+
+		newSocket.on("generation_progress", (data: { message: string }) => {
+			setProgress(data.message);
+		});
+
+		return () => {
+			newSocket.disconnect();
+		};
+	}, []);
 
 	const fetchModels = useCallback(async () => {
 		try {
@@ -88,18 +109,33 @@ const Informes = () => {
 		if (!changelog.trim())
 			return alert("Por favor, ingresa el changelog técnico.");
 		setLoading(true);
+		setProgress("Iniciando generación...");
+		setReport("");
 		try {
 			const { data } = await axios.post(`${API_BASE}/generate`, {
 				provider,
 				text: changelog,
 				model,
 				role,
+				socketId,
 			});
 			setReport(data.report);
+			setProgress("");
 		} catch {
 			alert("Error generando el informe");
+			setProgress("");
 		}
 		setLoading(false);
+	};
+
+	const downloadReport = () => {
+		if (!report) return;
+		const element = document.createElement("a");
+		const file = new Blob([report], { type: "text/markdown" });
+		element.href = URL.createObjectURL(file);
+		element.download = `zentinel-report-${new Date().toISOString().split("T")[0]}.md`;
+		document.body.appendChild(element);
+		element.click();
 	};
 
 	return (
@@ -214,7 +250,10 @@ const Informes = () => {
 					style={{ marginTop: "1.5rem", width: "100%" }}
 				>
 					{loading ? (
-						"Procesando con IA..."
+						<div className="flex-center gap-1">
+							<Loader2 size={18} className="animate-spin" />
+							<span>{progress || "Procesando..."}</span>
+						</div>
 					) : (
 						<>
 							<Sparkles size={18} /> Generar Reporte Mágico
@@ -226,9 +265,18 @@ const Informes = () => {
 			<section className="glass-card">
 				<div className="flex-between mb-2">
 					<h3>Vista Previa</h3>
-					<button className="secondary" disabled={!report}>
-						<Send size={16} /> Enviar a Discord
-					</button>
+					<div className="flex-gap-1">
+						<button
+							className="secondary"
+							onClick={downloadReport}
+							disabled={!report}
+						>
+							<Download size={16} /> Descargar .md
+						</button>
+						<button className="secondary" disabled={!report}>
+							<Send size={16} /> Enviar a Discord
+						</button>
+					</div>
 				</div>
 				<div
 					style={{
@@ -242,8 +290,21 @@ const Informes = () => {
 						color: report ? "var(--text-main)" : "var(--text-dim)",
 					}}
 				>
-					{report ||
-						"El reporte generado aparecerá aquí de forma espectacular..."}
+					{report ? (
+						<RichMarkdownRenderer content={report} />
+					) : (
+						<div
+							style={{
+								height: "100%",
+								display: "flex",
+								alignItems: "center",
+								justifyContent: "center",
+								textAlign: "center",
+							}}
+						>
+							El reporte generado aparecerá aquí de forma espectacular...
+						</div>
+					)}
 				</div>
 			</section>
 		</div>

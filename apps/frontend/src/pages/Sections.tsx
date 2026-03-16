@@ -585,7 +585,7 @@ export const Tareas = () => {
 };
 
 // --- DISCORD PAGE ---
-export const Discord = () => {
+export const DiscordSettings = () => {
 	const [webhookUrl, setWebhookUrl] = useState("");
 	const [mentionId, setMentionId] = useState("");
 	const [showUrl, setShowUrl] = useState(false);
