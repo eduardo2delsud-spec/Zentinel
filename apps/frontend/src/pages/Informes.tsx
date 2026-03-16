@@ -12,6 +12,11 @@ interface Source {
 	path: string;
 }
 
+interface Project {
+	id: number;
+	name: string;
+}
+
 interface SavedModel {
 	id: number;
 	provider: string;
@@ -31,7 +36,9 @@ const Informes = () => {
 	const [loading, setLoading] = useState(false);
 
 	const [sourcesArr, setSourcesArr] = useState<Source[]>([]);
+	const [projectsArr, setProjectsArr] = useState<Project[]>([]);
 	const [selectedSourceId, setSelectedSourceId] = useState("");
+	const [selectedProjectId, setSelectedProjectId] = useState("");
 	const [progress, setProgress] = useState("");
 	const [socketId, setSocketId] = useState("");
 
@@ -70,10 +77,11 @@ const Informes = () => {
 
 	const fetchData = useCallback(async () => {
 		try {
-			const [pRes, sRes, mRes] = await Promise.all([
+			const [pRes, sRes, mRes, projectsRes] = await Promise.all([
 				axios.get(`${API_BASE}/prompts`),
 				axios.get(`${API_BASE}/sources`),
 				axios.get(`${API_BASE}/ai-models`),
+				axios.get(`${API_BASE}/projects`),
 			]);
 			if (pRes.data.roles) {
 				setRoles(pRes.data.roles);
@@ -81,6 +89,7 @@ const Informes = () => {
 			}
 			setSourcesArr(sRes.data);
 			setSavedModels(mRes.data);
+			setProjectsArr(projectsRes.data);
 		} catch {
 			console.error("Error fetching initial data");
 		}
@@ -125,6 +134,7 @@ const Informes = () => {
 				today,
 				blockers,
 				doubts,
+				projectId: selectedProjectId,
 			});
 			setReport(data.report);
 			setProgress("");
@@ -148,20 +158,35 @@ const Informes = () => {
 	return (
 		<div className="grid-cols-2">
 			<section className="glass-card">
-				<div className="flex-between mb-1">
+				<div className="flex-between mb-1" style={{ gap: "0.5rem" }}>
 					<h3>🚀 Generar Informe</h3>
-					<select
-						style={{ width: "auto", fontSize: "0.85rem" }}
-						value={selectedSourceId}
-						onChange={(e) => loadSourceContent(e.target.value)}
-					>
-						<option value="">-- Seleccionar Log --</option>
-						{sourcesArr.map((s) => (
-							<option key={s.id} value={s.id}>
-								{s.name}
-							</option>
-						))}
-					</select>
+					<div style={{ display: "flex", gap: "0.5rem", flex: 1, justifyContent: "flex-end" }}>
+						<select
+							style={{ width: "auto", fontSize: "0.85rem" }}
+							value={selectedProjectId}
+							onChange={(e) => setSelectedProjectId(e.target.value)}
+						>
+							<option value="">-- Sin Proyecto (No RAG) --</option>
+							{projectsArr.map((p) => (
+								<option key={p.id} value={p.id}>
+									📂 {p.name}
+								</option>
+							))}
+						</select>
+
+						<select
+							style={{ width: "auto", fontSize: "0.85rem" }}
+							value={selectedSourceId}
+							onChange={(e) => loadSourceContent(e.target.value)}
+						>
+							<option value="">-- Seleccionar Log --</option>
+							{sourcesArr.map((s) => (
+								<option key={s.id} value={s.id}>
+									📄 {s.name}
+								</option>
+							))}
+						</select>
+					</div>
 				</div>
 				<div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem" }}>
 					<div style={{ flex: 1 }}>

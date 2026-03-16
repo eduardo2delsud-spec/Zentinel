@@ -22,6 +22,13 @@ interface Source {
 	path: string;
 }
 
+interface Project {
+	id: number;
+	name: string;
+	rootPath: string;
+	changelogSourceId: number;
+}
+
 interface Role {
 	id: string;
 	name: string;
@@ -89,60 +96,74 @@ function cronToHuman(cron: string): string {
 	return `${daysStr} a las ${hour}:${min}`;
 }
 
-// --- ARCHIVOS PAGE ---
-export const Archivos = () => {
-	const [sourcesArr, setSourcesArr] = useState<Source[]>([]);
+// --- PROYECTO PAGE ---
+export const Proyecto = () => {
+	const [projectsArr, setProjectsArr] = useState<Project[]>([]);
 	const [newName, setNewName] = useState("");
-	const [newPath, setNewPath] = useState("");
+	const [newRootPath, setNewRootPath] = useState("");
+	const [newChangelogPath, setNewChangelogPath] = useState("");
 	const [showAdd, setShowAdd] = useState(false);
 	const [showBrowser, setShowBrowser] = useState(false);
+	const [browserTarget, setBrowserTarget] = useState<"root" | "changelog">("root");
 
-	const loadSources = useCallback(async () => {
+	const loadProjects = useCallback(async () => {
 		try {
-			const { data } = await axios.get(`${API_BASE}/sources`);
-			setSourcesArr(data);
+			const { data } = await axios.get(`${API_BASE}/projects`);
+			setProjectsArr(data);
 		} catch {
-			console.error("Error loading sources");
+			console.error("Error loading projects");
 		}
 	}, []);
 
 	useEffect(() => {
 		(async () => {
-			await loadSources();
+			await loadProjects();
 		})();
-	}, [loadSources]);
+	}, [loadProjects]);
 
-	const addSource = async () => {
-		if (!newName || !newPath) return alert("Completa todos los campos");
+	const addProject = async () => {
+		if (!newName || !newRootPath || !newChangelogPath)
+			return alert("Completa todos los campos (Changelog es obligatorio)");
 		try {
-			await axios.post(`${API_BASE}/sources`, {
+			await axios.post(`${API_BASE}/projects`, {
 				name: newName,
-				path: newPath,
+				rootPath: newRootPath,
+				changelogPath: newChangelogPath,
 			});
 			setNewName("");
-			setNewPath("");
+			setNewRootPath("");
+			setNewChangelogPath("");
 			setShowAdd(false);
-			loadSources();
+			loadProjects();
 		} catch {
-			alert("Error al añadir fuente");
+			alert("Error al crear el proyecto y procesar RAG");
 		}
 	};
 
-	const deleteSource = async (id: number) => {
-		if (!confirm("¿Eliminar esta fuente?")) return;
+	const deleteProject = async (id: number) => {
+		if (!confirm("¿Eliminar este proyecto y su índice RAG?")) return;
 		try {
-			await axios.delete(`${API_BASE}/sources/${id}`);
-			loadSources();
+			await axios.delete(`${API_BASE}/projects/${id}`);
+			loadProjects();
 		} catch {
-			alert("Error al eliminar fuente");
+			alert("Error al eliminar proyecto");
 		}
 	};
 
-	const handleFileSelected = (path: string) => {
-		setNewPath(path);
-		const fileName = path.split(/[\\/]/).pop() || "";
-		if (!newName) setNewName(fileName.replace(/\.[^/.]+$/, ""));
+	const handlePathSelected = (path: string) => {
+		if (browserTarget === "root") {
+			setNewRootPath(path);
+			const folderName = path.split(/[\\/]/).pop() || "";
+			if (!newName) setNewName(folderName);
+		} else {
+			setNewChangelogPath(path);
+		}
 		setShowBrowser(false);
+	};
+
+	const openBrowser = (target: "root" | "changelog") => {
+		setBrowserTarget(target);
+		setShowBrowser(true);
 	};
 
 	return (
@@ -150,9 +171,9 @@ export const Archivos = () => {
 			<div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
 				<div className="glass-card">
 					<div className="flex-between mb-2">
-						<h3>📁 Fuentes de Datos (Logs / Changelogs)</h3>
+						<h3>📂 Gestión de Proyectos (RAG + Contexto)</h3>
 						<button onClick={() => setShowAdd(!showAdd)}>
-							<Plus size={18} /> {showAdd ? "Cancelar" : "Añadir Fuente"}
+							<Plus size={18} /> {showAdd ? "Cancelar" : "Nuevo Proyecto"}
 						</button>
 					</div>
 
@@ -162,32 +183,57 @@ export const Archivos = () => {
 							style={{ background: "var(--bg-deep)" }}
 						>
 							<div className="form-group">
-								<label>Nombre del Proyecto/Archivo</label>
+								<label htmlFor="proj-name">Nombre del Proyecto</label>
 								<input
+									id="proj-name"
 									value={newName}
 									onChange={(e) => setNewName(e.target.value)}
-									placeholder="Ej. CRM Backend"
+									placeholder="Ej. Mi Super App"
 								/>
 							</div>
+
 							<div className="form-group">
-								<label>Ruta del Archivo</label>
+								<label htmlFor="proj-root">Carpeta Raíz del Proyecto (para RAG)</label>
 								<div style={{ display: "flex", gap: "0.5rem" }}>
 									<input
-										value={newPath}
-										onChange={(e) => setNewPath(e.target.value)}
-										placeholder="Selecciona un archivo..."
+										id="proj-root"
+										value={newRootPath}
+										onChange={(e) => setNewRootPath(e.target.value)}
+										placeholder="Selecciona la carpeta principal..."
 										style={{ flex: 1 }}
 									/>
 									<button
+										type="button"
 										className="secondary"
-										onClick={() => setShowBrowser(true)}
+										onClick={() => openBrowser("root")}
 									>
-										<FolderSearch size={18} /> Explorar
+										<FolderSearch size={18} /> Carpeta
 									</button>
 								</div>
 							</div>
-							<button onClick={addSource}>
-								<Save size={18} /> Guardar Fuente
+
+							<div className="form-group">
+								<label htmlFor="proj-changelog">Archivo Changelog / Log (Obligatorio)</label>
+								<div style={{ display: "flex", gap: "0.5rem" }}>
+									<input
+										id="proj-changelog"
+										value={newChangelogPath}
+										onChange={(e) => setNewChangelogPath(e.target.value)}
+										placeholder="Selecciona el archivo de actividades..."
+										style={{ flex: 1 }}
+									/>
+									<button
+										type="button"
+										className="secondary"
+										onClick={() => openBrowser("changelog")}
+									>
+										<FileText size={18} /> Archivo
+									</button>
+								</div>
+							</div>
+
+							<button onClick={addProject}>
+								<Save size={18} /> Crear Proyecto y Procesar RAG
 							</button>
 						</div>
 					)}
@@ -199,17 +245,17 @@ export const Archivos = () => {
 							gap: "1rem",
 						}}
 					>
-						{sourcesArr.length === 0 ? (
+						{projectsArr.length === 0 ? (
 							<div
 								className="text-muted"
 								style={{ textAlign: "center", padding: "2rem" }}
 							>
-								No hay fuentes registradas. Añade una para empezar.
+								No hay proyectos registrados. Crea uno para habilitar el RAG.
 							</div>
 						) : (
-							sourcesArr.map((s) => (
+							projectsArr.map((p) => (
 								<div
-									key={s.id}
+									key={p.id}
 									className="glass-card"
 									style={{
 										padding: "1rem",
@@ -219,14 +265,14 @@ export const Archivos = () => {
 									<div className="flex-between">
 										<div>
 											<strong>
-												<FileText
+												<Plus
 													size={16}
 													style={{
 														verticalAlign: "middle",
 														marginRight: "0.5rem",
 													}}
 												/>
-												{s.name}
+												{p.name}
 											</strong>
 											<div
 												className="text-muted"
@@ -235,12 +281,22 @@ export const Archivos = () => {
 													marginTop: "0.2rem",
 												}}
 											>
-												{s.path}
+												📍 {p.rootPath}
+											</div>
+											<div
+												className="text-muted"
+												style={{
+													fontSize: "0.75rem",
+													marginTop: "0.1rem",
+													color: "var(--accent-primary)",
+												}}
+											>
+												📝 ID Changelog: {p.changelogSourceId}
 											</div>
 										</div>
 										<button
 											className="secondary"
-											onClick={() => deleteSource(s.id)}
+											onClick={() => deleteProject(p.id)}
 											style={{ color: "#ff4444" }}
 										>
 											<Trash2 size={16} />
@@ -255,7 +311,7 @@ export const Archivos = () => {
 
 			{showBrowser && (
 				<FileBrowser
-					onSelect={handleFileSelected}
+					onSelect={handlePathSelected}
 					onClose={() => setShowBrowser(false)}
 				/>
 			)}

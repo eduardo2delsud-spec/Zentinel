@@ -26,11 +26,11 @@ const Sidebar = () => {
 					<span>Dashboard</span>
 				</NavLink>
 				<NavLink
-					to="/archivos"
+					to="/proyecto"
 					className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
 				>
 					<Files />
-					<span>Archivos</span>
+					<span>Proyecto</span>
 				</NavLink>
 
 				<NavLink

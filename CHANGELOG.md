@@ -11,9 +11,10 @@ Todas las actividades importantes del proyecto se registran aquí.
 - **Biblioteca de Prompts**: Sistema de importación/exportación de roles en JSON y plantillas predefinidas (Tech Lead, PO, etc.). [2026-03-16]
 - **Descarga de Informes**: Botón para descargar la vista previa del informe en formato Markdown (.md). [2026-03-16]
 - **Secciones de Informe Enriquecidas**: Nuevos campos para "Hoy/Pendientes", "Bloqueos" y "Dudas" en la generación de informes, permitiendo un contexto más completo para la IA. [2026-03-16]
+- **Gestión de Proyectos y RAG**: Nueva sección "Proyecto" (antes "Archivos") que permite crear proyectos, indexar archivos de código y utilizar ese contexto como RAG durante la generación de informes. [2026-03-16]
 
 ### Changed (Cambio)
-- **Estructura de Base de Datos**: Añadidas columnas `tokensUsed` y `sentimentScore` a la tabla de reportes para analíticas. [2026-03-16]
+- **Estructura de Base de Datos**: Añadidas tablas `projects` y `project_files` para soportar RAG, y columnas `tokensUsed` y `sentimentScore` a la tabla de reportes. [2026-03-16]
 - **Configuración Reorganizada**: Nueva interfaz por pestañas (API, Modelos, Prompts, Discord) para una mejor gestión. [2026-03-16]
 
 ### Fixed (Corrección)

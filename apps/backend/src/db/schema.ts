@@ -36,7 +36,30 @@ export const sources = sqliteTable("sources", {
 	id: integer("id").primaryKey({ autoIncrement: true }),
 	name: text("name").notNull(),
 	path: text("path").notNull(),
+	projectId: integer("project_id"),
 	createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
+		() => new Date(),
+	),
+});
+
+export const projects = sqliteTable("projects", {
+	id: integer("id").primaryKey({ autoIncrement: true }),
+	name: text("name").notNull(),
+	description: text("description"),
+	rootPath: text("root_path"), // Ruta de la carpeta del proyecto
+	changelogSourceId: integer("changelog_source_id").references(() => sources.id),
+	createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
+		() => new Date(),
+	),
+});
+
+export const projectFiles = sqliteTable("project_files", {
+	id: integer("id").primaryKey({ autoIncrement: true }),
+	projectId: integer("project_id").references(() => projects.id),
+	fileName: text("file_name").notNull(),
+	filePath: text("file_path").notNull(),
+	content: text("content").notNull(), // Contenido para el RAG
+	updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(
 		() => new Date(),
 	),
 });

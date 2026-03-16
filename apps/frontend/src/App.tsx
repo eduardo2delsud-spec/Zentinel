@@ -8,7 +8,7 @@ import Sidebar from "./components/Sidebar";
 import Dashboard from "./pages/Dashboard";
 import Informes from "./pages/Informes";
 import Configuracion from "./pages/Configuracion";
-import { Archivos, Historial, Tareas, DiscordSettings } from "./pages/Sections";
+import { Proyecto, Historial, Tareas, DiscordSettings } from "./pages/Sections";
 import "./index.css";
 
 function App() {
@@ -20,7 +20,7 @@ function App() {
 					<Routes>
 						<Route path="/" element={<Navigate to="/dashboard" replace />} />
 						<Route path="/dashboard" element={<Dashboard />} />
-						<Route path="/archivos" element={<Archivos />} />
+						<Route path="/proyecto" element={<Proyecto />} />
 						<Route path="/informes" element={<Informes />} />
 						<Route path="/tareas" element={<Tareas />} />
 						<Route path="/discord" element={<DiscordSettings />} />

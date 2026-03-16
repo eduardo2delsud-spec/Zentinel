@@ -6,6 +6,7 @@ import { AIServiceFactory } from "./services/ai/ai.factory.js";
 import { PromptManager } from "./services/ai/prompt.manager.js";
 import { DiscordWebhookManager } from "./services/discord/webhook.manager.js";
 import { schedulerService } from "./services/scheduler.service.js";
+import { ProjectService } from "./services/project.service.js";
 import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
@@ -104,6 +105,8 @@ import {
 	sources,
 	scheduledTasks,
 	aiModels,
+	projects,
+	projectFiles,
 } from "./db/schema.js";
 import { eq, desc } from "drizzle-orm";
 
@@ -211,6 +214,42 @@ app.get("/api/fs/ls", async (req, res) => {
 	}
 });
 
+
+
+// Projects Endpoints
+app.get("/api/projects", async (_req, res) => {
+	try {
+		const all = await ProjectService.getAllProjects();
+		res.json(all);
+	} catch (error) {
+		res.status(500).json({ error: (error as Error).message });
+	}
+});
+
+app.post("/api/projects", async (req, res) => {
+	const { name, rootPath, changelogPath } = req.body;
+	try {
+		const project = await ProjectService.createProject(
+			name,
+			rootPath,
+			changelogPath,
+		);
+		res.json(project);
+	} catch (error) {
+		res.status(500).json({ error: (error as Error).message });
+	}
+});
+
+app.delete("/api/projects/:id", async (req, res) => {
+	const { id } = req.params;
+	try {
+		await ProjectService.deleteProject(Number(id));
+		res.json({ success: true });
+	} catch (error) {
+		res.status(500).json({ error: (error as Error).message });
+	}
+});
+
 // History (Reports) Endpoints
 app.get("/api/reports", async (_req, res) => {
 	const allReports = await db
@@ -265,11 +304,16 @@ app.delete("/api/tasks/:id", async (req, res) => {
 });
 
 app.post("/api/generate", async (req, res) => {
-	const { provider, text, model, role, socketId, today, blockers, doubts } =
+	const { provider, text, model, role, socketId, today, blockers, doubts, projectId } =
 		req.body;
 	try {
 		const service = AIServiceFactory.getService(provider);
 		const systemPrompt = await promptManager.getPrompt(role);
+
+		let projectContext = "";
+		if (projectId) {
+			projectContext = await ProjectService.getProjectContext(Number(projectId));
+		}
 
 		const emitProgress = (message: string) => {
 			if (socketId && io.to(socketId)) {
@@ -295,7 +339,7 @@ ${doubts || "N/A"}
 		const reportContent = await service.generateReport({
 			text: fullContext,
 			model,
-			systemPrompt: `${systemPrompt}\n\nIMPORTANTE: Genera un informe profesional siguiendo estrictamente este formato:
+			systemPrompt: `${systemPrompt}\n\nCONTEXTO DEL PROYECTO (RAG):\n${projectContext}\n\nIMPORTANTE: Genera un informe profesional siguiendo estrictamente este formato:
 - Usa emojis para las secciones.
 - Mejora la redacción técnica de lo ingresado.
 - Mantén la estructura de: AYER, HOY/PENDIENTES, BLOQUEOS y DUDAS.
