@@ -19,13 +19,9 @@ Todas las actividades importantes del proyecto se registran aquí.
 - **Gestión de Proyectos y RAG**: Nueva sección "Proyecto" que permite crear y **editar** proyectos, indexar archivos de código y utilizar ese contexto como RAG. [2026-03-16]
 
 ### Changed (Cambio)
-- **CRUD Optimizado**: Proyectos y Tareas Programadas ahora son totalmente editables, facilitando ajustes de configuración. [2026-03-16]
-- **Refinamiento de UI**: Mejora visual con iconos contextuales (`Edit`, `Save`, `X`, `Plus`) y feedback mejorado en botones de acción. [2026-03-16]
-- **Estructura de Base de Datos**: Actualización de esquema para soportar `projectId` en tareas programadas y campos extendidos en reportes. [2026-03-16]
-
-### Changed (Cambio)
-- **Estructura de Base de Datos**: Añadidas tablas `projects` y `project_files` para soportar RAG, y columnas `tokensUsed` y `sentimentScore` a la tabla de reportes. [2026-03-16]
-- **Configuración Reorganizada**: Nueva interfaz por pestañas (API, Modelos, Prompts, Discord) para una mejor gestión. [2026-03-16]
+- **CRUD Optimizado**: Proyectos y Tareas Programadas ahora son totalmente editables, facilitando ajustes de configuración sin re-crear. [2026-03-16]
+- **Refinamiento de UI**: Mejora visual con iconos contextuales (`Edit`, `Save`, `X`, `Plus`) y organización por pestañas en "Informes" y "Configuración". [2026-03-16]
+- **Estructura de Base de Datos**: Actualización de esquema (SQLite/Drizzle) para soportar proyectos, archivos RAG, tokens y métricas de sentimiento. [2026-03-16]
 
 ### Fixed (Corrección)
 - **Tipado TypeScript**: Resolución de errores de tipos en componentes principales (`Informes`, `Configuracion`, `Dashboard`). [2026-03-16]
