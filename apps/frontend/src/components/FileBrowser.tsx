@@ -81,9 +81,15 @@ const FileBrowser = ({ onSelect, onClose }: FileBrowserProps) => {
 						background: "var(--bg-deep)",
 						padding: "0.5rem",
 						borderRadius: "8px",
+						alignItems: "center",
 					}}
 				>
-					<button className="secondary" onClick={loadRoot} title="Home">
+					<button
+						type="button"
+						className="secondary"
+						onClick={loadRoot}
+						title="Home"
+					>
 						<Home size={16} />
 					</button>
 					<div
@@ -93,11 +99,18 @@ const FileBrowser = ({ onSelect, onClose }: FileBrowserProps) => {
 							overflow: "hidden",
 							textOverflow: "ellipsis",
 							whiteSpace: "nowrap",
-							alignSelf: "center",
+							flex: 1,
 						}}
 					>
 						{currentDir}
 					</div>
+					<button
+						type="button"
+						style={{ padding: "0.4rem 0.8rem", fontSize: "0.8rem" }}
+						onClick={() => onSelect(currentDir)}
+					>
+						Seleccionar ubicación
+					</button>
 				</div>
 
 				<div className="form-group mb-2">
