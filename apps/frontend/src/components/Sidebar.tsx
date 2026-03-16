@@ -3,7 +3,6 @@ import {
 	Files,
 	FileText,
 	Clock,
-	History,
 	Settings as SettingsIcon,
 	Shield,
 	LayoutDashboard,
@@ -49,13 +48,6 @@ const Sidebar = () => {
 					<span>Tareas</span>
 				</NavLink>
 
-				<NavLink
-					to="/historial"
-					className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
-				>
-					<History />
-					<span>Historial</span>
-				</NavLink>
 
 				<NavLink
 					to="/configuracion"

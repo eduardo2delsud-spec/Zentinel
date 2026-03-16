@@ -3,11 +3,10 @@ import axios from "axios";
 import {
 	Plus,
 	Trash2,
+	FolderSearch,
 	FileText,
 	Save,
 	Clock,
-	History,
-	FolderSearch,
 	Eye,
 	EyeOff,
 	MessageSquare,
@@ -47,16 +46,6 @@ interface Task {
 	active: boolean;
 }
 
-interface Report {
-	id: number;
-	title: string;
-	content: string;
-	rawInput: string;
-	provider: string;
-	model: string;
-	role: string;
-	createdAt: string;
-}
 
 // --- Helpers ---
 const DAYS = [
@@ -714,170 +703,6 @@ export const DiscordSettings = () => {
 			<button onClick={saveDiscordSettings}>
 				<Save size={18} /> {saved ? "✓ Guardado" : "Guardar Configuración"}
 			</button>
-		</div>
-	);
-};
-
-// --- HISTORIAL PAGE ---
-export const Historial = () => {
-	const [reportsArr, setReportsArr] = useState<Report[]>([]);
-	const [expandedId, setExpandedId] = useState<number | null>(null);
-
-	const loadReports = useCallback(async () => {
-		try {
-			const { data } = await axios.get(`${API_BASE}/reports`);
-			setReportsArr(data);
-		} catch {
-			console.error("Error loading reports");
-		}
-	}, []);
-
-	useEffect(() => {
-		(async () => {
-			await loadReports();
-		})();
-	}, [loadReports]);
-
-	const deleteReport = async (id: number) => {
-		if (!confirm("¿Eliminar este informe del historial?")) return;
-		try {
-			await axios.delete(`${API_BASE}/reports/${id}`);
-			loadReports();
-		} catch {
-			alert("Error al eliminar informe");
-		}
-	};
-
-	return (
-		<div className="glass-card">
-			<div className="flex-between mb-2">
-				<h3>
-					<History
-						size={20}
-						style={{ verticalAlign: "middle", marginRight: "0.5rem" }}
-					/>
-					Historial de Informes
-				</h3>
-				<span className="text-muted" style={{ fontSize: "0.85rem" }}>
-					{reportsArr.length} informe(s)
-				</span>
-			</div>
-
-			<div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-				{reportsArr.length === 0 ? (
-					<div
-						className="text-muted"
-						style={{ textAlign: "center", padding: "3rem" }}
-					>
-						Aún no has generado informes. Tu historial aparecerá aquí
-						automáticamente.
-					</div>
-				) : (
-					reportsArr.map((r) => (
-						<div
-							key={r.id}
-							className="glass-card"
-							style={{
-								padding: "1.2rem",
-								background: "var(--bg-card)",
-							}}
-						>
-							<div className="flex-between">
-								<div style={{ flex: 1 }}>
-									<strong>{r.title}</strong>
-									<div
-										className="text-muted"
-										style={{
-											fontSize: "0.8rem",
-											marginTop: "0.2rem",
-										}}
-									>
-										{new Date(r.createdAt).toLocaleString()} · {r.provider}/
-										{r.model} · Rol: {r.role}
-									</div>
-								</div>
-								<div className="flex-gap-1">
-									<button
-										className="secondary"
-										onClick={() =>
-											setExpandedId(expandedId === r.id ? null : r.id)
-										}
-									>
-										{expandedId === r.id ? (
-											<EyeOff size={16} />
-										) : (
-											<Eye size={16} />
-										)}
-									</button>
-									<button
-										className="secondary"
-										onClick={() => deleteReport(r.id)}
-										style={{ color: "#ff4444" }}
-									>
-										<Trash2 size={16} />
-									</button>
-								</div>
-							</div>
-							{expandedId === r.id && (
-								<div style={{ marginTop: "1rem" }}>
-									<div className="grid-cols-2">
-										<div>
-											<div
-												className="text-muted"
-												style={{
-													fontSize: "0.75rem",
-													marginBottom: "0.5rem",
-													fontWeight: 600,
-												}}
-											>
-												CHANGELOG (Input)
-											</div>
-											<pre
-												style={{
-													background: "var(--bg-deep)",
-													padding: "1rem",
-													borderRadius: "8px",
-													fontSize: "0.8rem",
-													maxHeight: "300px",
-													overflow: "auto",
-													whiteSpace: "pre-wrap",
-												}}
-											>
-												{r.rawInput}
-											</pre>
-										</div>
-										<div>
-											<div
-												className="text-muted"
-												style={{
-													fontSize: "0.75rem",
-													marginBottom: "0.5rem",
-													fontWeight: 600,
-												}}
-											>
-												INFORME GENERADO
-											</div>
-											<div
-												style={{
-													background: "var(--bg-deep)",
-													padding: "1rem",
-													borderRadius: "8px",
-													fontSize: "0.85rem",
-													maxHeight: "300px",
-													overflow: "auto",
-													whiteSpace: "pre-wrap",
-												}}
-											>
-												{r.content}
-											</div>
-										</div>
-									</div>
-								</div>
-							)}
-						</div>
-					))
-				)}
-			</div>
 		</div>
 	);
 };

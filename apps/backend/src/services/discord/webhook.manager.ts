@@ -10,7 +10,12 @@ export class DiscordWebhookManager {
 	) {
 		try {
 			await axios.post(webhookUrl, {
-				content: mentionId ? `<@${mentionId}>` : undefined,
+				content: mentionId
+					? mentionId
+							.split(/[\s,]+/)
+							.map((id) => `<@${id.trim()}>`)
+							.join(" ")
+					: undefined,
 				embeds: [
 					{
 						title,

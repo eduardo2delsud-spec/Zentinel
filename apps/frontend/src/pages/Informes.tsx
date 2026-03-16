@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
-import { Send, Sparkles, Download, Loader2 } from "lucide-react";
+import { Send, Sparkles, Download, Loader2, History, Eye, EyeOff, Trash2, FileText } from "lucide-react";
 import { io } from "socket.io-client";
 import { RichMarkdownRenderer } from "../components/RichMarkdownRenderer";
 
@@ -15,6 +15,7 @@ interface Source {
 interface Project {
 	id: number;
 	name: string;
+	changelogSourceId: number;
 }
 
 interface SavedModel {
@@ -22,6 +23,17 @@ interface SavedModel {
 	provider: string;
 	modelId: string;
 	displayName: string;
+}
+
+interface Report {
+	id: number;
+	title: string;
+	content: string;
+	rawInput: string;
+	provider: string;
+	model: string;
+	role: string;
+	createdAt: string;
 }
 
 const Informes = () => {
@@ -41,10 +53,15 @@ const Informes = () => {
 	const [selectedProjectId, setSelectedProjectId] = useState("");
 	const [progress, setProgress] = useState("");
 	const [socketId, setSocketId] = useState("");
+	const [sendingDiscord, setSendingDiscord] = useState(false);
 
 	const [today, setToday] = useState("");
 	const [blockers, setBlockers] = useState("");
 	const [doubts, setDoubts] = useState("");
+
+	const [activeTab, setActiveTab] = useState<"generar" | "lista">("generar");
+	const [reportsArr, setReportsArr] = useState<Report[]>([]);
+	const [expandedId, setExpandedId] = useState<number | null>(null);
 
 	useEffect(() => {
 		const newSocket = io("http://localhost:3001");
@@ -101,11 +118,33 @@ const Informes = () => {
 		})();
 	}, [fetchModels]);
 
+	const loadReports = useCallback(async () => {
+		try {
+			const { data } = await axios.get(`${API_BASE}/reports`);
+			setReportsArr(data);
+		} catch {
+			console.error("Error loading reports");
+		}
+	}, []);
+
 	useEffect(() => {
 		(async () => {
 			await fetchData();
+			await loadReports();
 		})();
-	}, [fetchData]);
+	}, [fetchData, loadReports]);
+
+	// Auto-load project's changelog when selected
+	useEffect(() => {
+		if (selectedProjectId) {
+			const project = projectsArr.find(
+				(p) => p.id === Number(selectedProjectId),
+			);
+			if (project?.changelogSourceId) {
+				loadSourceContent(project.changelogSourceId.toString());
+			}
+		}
+	}, [selectedProjectId, projectsArr]);
 
 	const loadSourceContent = async (id: string) => {
 		if (!id) return;
@@ -155,260 +194,357 @@ const Informes = () => {
 		element.click();
 	};
 
+	const deleteReport = async (id: number) => {
+		if (!confirm("¿Eliminar este informe del historial?")) return;
+		try {
+			await axios.delete(`${API_BASE}/reports/${id}`);
+			loadReports();
+		} catch {
+			alert("Error al eliminar informe");
+		}
+	};
+
+	const downloadReportFile = (content: string, title: string) => {
+		const element = document.createElement("a");
+		const file = new Blob([content], { type: "text/markdown" });
+		element.href = URL.createObjectURL(file);
+		element.download = `${title.toLowerCase().replace(/\s+/g, "-")}.md`;
+		document.body.appendChild(element);
+		element.click();
+	};
+
+	const sendExistingToDiscord = async (reportContent: string) => {
+		setSendingDiscord(true);
+		try {
+			const { data: settings } = await axios.get(`${API_BASE}/settings`);
+			if (!settings.discord_webhook_url) {
+				return alert("Configura el Webhook en la sección de Configuración.");
+			}
+			await axios.post(`${API_BASE}/discord`, {
+				webhookUrl: settings.discord_webhook_url,
+				content: reportContent,
+				title: `🚀 Re-envío de Informe - Zentinel`,
+				mentionId: settings.discord_mention_id,
+			});
+			alert("¡Informe enviado a Discord!");
+		} catch {
+			alert("Error al enviar a Discord.");
+		} finally {
+			setSendingDiscord(false);
+		}
+	};
+
 	return (
-		<div className="grid-cols-2">
-			<section className="glass-card">
-				<div className="flex-between mb-1" style={{ gap: "0.5rem" }}>
-					<h3>🚀 Generar Informe</h3>
-					<div style={{ display: "flex", gap: "0.5rem", flex: 1, justifyContent: "flex-end" }}>
-						<select
-							style={{ width: "auto", fontSize: "0.85rem" }}
-							value={selectedProjectId}
-							onChange={(e) => setSelectedProjectId(e.target.value)}
-						>
-							<option value="">-- Sin Proyecto (No RAG) --</option>
-							{projectsArr.map((p) => (
-								<option key={p.id} value={p.id}>
-									📂 {p.name}
-								</option>
-							))}
-						</select>
-
-						<select
-							style={{ width: "auto", fontSize: "0.85rem" }}
-							value={selectedSourceId}
-							onChange={(e) => loadSourceContent(e.target.value)}
-						>
-							<option value="">-- Seleccionar Log --</option>
-							{sourcesArr.map((s) => (
-								<option key={s.id} value={s.id}>
-									📄 {s.name}
-								</option>
-							))}
-						</select>
-					</div>
-				</div>
-				<div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem" }}>
-					<div style={{ flex: 1 }}>
-						<label
-							htmlFor="provider-select"
-							className="text-muted"
-							style={{
-								fontSize: "0.8rem",
-								display: "block",
-								marginBottom: "0.4rem",
-							}}
-						>
-							IA Provider
-						</label>
-						<select
-							id="provider-select"
-							value={provider}
-							onChange={(e) => setProvider(e.target.value)}
-						>
-							<option value="ollama">Ollama</option>
-							<option value="openrouter">OpenRouter</option>
-						</select>
-					</div>
-					<div style={{ flex: 1 }}>
-						<label
-							htmlFor="model-select"
-							className="text-muted"
-							style={{
-								fontSize: "0.8rem",
-								display: "block",
-								marginBottom: "0.4rem",
-							}}
-						>
-							Modelo
-						</label>
-						<select
-							id="model-select"
-							value={model}
-							onChange={(e) => {
-								const val = e.target.value;
-								setModel(val);
-								const saved = savedModels.find((s) => s.modelId === val);
-								if (saved) setProvider(saved.provider);
-							}}
-						>
-							{savedModels.length > 0 && (
-								<optgroup label="⭐ Guardados">
-									{savedModels.map((s) => (
-										<option key={`saved-${s.id}`} value={s.modelId}>
-											{s.displayName}
-										</option>
-									))}
-								</optgroup>
-							)}
-							{models.length > 0 && (
-								<optgroup label={`📡 ${provider} (Live)`}>
-									{models.map((m) => (
-										<option key={m} value={m}>
-											{m}
-										</option>
-									))}
-								</optgroup>
-							)}
-						</select>
-					</div>
-					<div style={{ flex: 1 }}>
-						<label
-							htmlFor="role-select"
-							className="text-muted"
-							style={{
-								fontSize: "0.8rem",
-								display: "block",
-								marginBottom: "0.4rem",
-							}}
-						>
-							Role
-						</label>
-						<select
-							id="role-select"
-							value={role}
-							onChange={(e) => setRole(e.target.value)}
-						>
-							{roles.map((r) => (
-								<option key={r.id} value={r.id}>
-									{r.name}
-								</option>
-							))}
-						</select>
-					</div>
-				</div>
-
-				<textarea
-					id="changelog-input"
-					placeholder="Pega aquí el changelog técnico crudo (AYER)..."
-					value={changelog}
-					onChange={(e) => setChangelog(e.target.value)}
-					style={{ height: "250px", resize: "none", marginBottom: "1rem" }}
-				/>
-
-				<div
-					style={{
-						display: "grid",
-						gridTemplateColumns: "1fr 1fr 1fr",
-						gap: "1rem",
-						marginBottom: "1rem",
-					}}
-				>
-					<div>
-						<label
-							htmlFor="today-input"
-							className="text-muted"
-							style={{ fontSize: "0.8rem" }}
-						>
-							⬇️ HOY / PENDIENTES
-						</label>
-						<textarea
-							id="today-input"
-							placeholder="¿Qué planes hay para hoy?"
-							value={today}
-							onChange={(e) => setToday(e.target.value)}
-							style={{ height: "120px", resize: "none", fontSize: "0.85rem" }}
-						/>
-					</div>
-					<div>
-						<label
-							htmlFor="blockers-input"
-							className="text-muted"
-							style={{ fontSize: "0.8rem" }}
-						>
-							⛔ BLOQUEOS
-						</label>
-						<textarea
-							id="blockers-input"
-							placeholder="¿Algo que te detenga?"
-							value={blockers}
-							onChange={(e) => setBlockers(e.target.value)}
-							style={{ height: "120px", resize: "none", fontSize: "0.85rem" }}
-						/>
-					</div>
-					<div>
-						<label
-							htmlFor="doubts-input"
-							className="text-muted"
-							style={{ fontSize: "0.8rem" }}
-						>
-							❓ DUDAS
-						</label>
-						<textarea
-							id="doubts-input"
-							placeholder="Cualquier duda técnica..."
-							value={doubts}
-							onChange={(e) => setDoubts(e.target.value)}
-							style={{ height: "120px", resize: "none", fontSize: "0.85rem" }}
-						/>
-					</div>
-				</div>
-
+		<div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+			<div
+				style={{
+					display: "flex",
+					gap: "0.5rem",
+					borderBottom: "1px solid var(--border-luxe)",
+					paddingBottom: "0.5rem",
+				}}
+			>
 				<button
-					type="button"
-					onClick={generateReport}
-					disabled={loading}
-					style={{ marginTop: "1.5rem", width: "100%" }}
-				>
-					{loading ? (
-						<div className="flex-center gap-1">
-							<Loader2 size={18} className="animate-spin" />
-							<span>{progress || "Procesando..."}</span>
-						</div>
-					) : (
-						<>
-							<Sparkles size={18} /> Generar Reporte Mágico
-						</>
-					)}
-				</button>
-			</section>
-
-			<section className="glass-card">
-				<div className="flex-between mb-2">
-					<h3>Vista Previa</h3>
-					<div className="flex-gap-1">
-						<button
-							type="button"
-							className="secondary"
-							onClick={downloadReport}
-							disabled={!report}
-						>
-							<Download size={16} /> Descargar .md
-						</button>
-						<button type="button" className="secondary" disabled={!report}>
-							<Send size={16} /> Enviar a Discord
-						</button>
-					</div>
-				</div>
-				<div
+					className={activeTab === "generar" ? "" : "secondary"}
+					onClick={() => setActiveTab("generar")}
 					style={{
-						background: "var(--bg-deep)",
-						padding: "1.5rem",
-						borderRadius: "12px",
-						height: "480px",
-						overflowY: "auto",
-						border: "1px solid var(--border-luxe)",
-						whiteSpace: "pre-wrap",
-						color: report ? "var(--text-main)" : "var(--text-dim)",
+						borderRadius: "12px 12px 0 0",
+						...(activeTab === "generar" ? {} : { background: "transparent", border: "none" }),
 					}}
 				>
-					{report ? (
-						<RichMarkdownRenderer content={report} />
-					) : (
+					<Sparkles size={18} /> Generar Informe
+				</button>
+				<button
+					className={activeTab === "lista" ? "" : "secondary"}
+					onClick={() => setActiveTab("lista")}
+					style={{
+						borderRadius: "12px 12px 0 0",
+						...(activeTab === "lista" ? {} : { background: "transparent", border: "none" }),
+					}}
+				>
+					<FileText size={18} /> Historial de Informes
+				</button>
+			</div>
+
+			{activeTab === "generar" ? (
+				<div className="grid-cols-2">
+					<section className="glass-card">
+						<div className="flex-between mb-1" style={{ gap: "0.5rem" }}>
+							<h3>🚀 Nuevo Informe</h3>
+							<div style={{ display: "flex", gap: "0.5rem", flex: 1, justifyContent: "flex-end" }}>
+								<select
+									style={{ width: "auto", fontSize: "0.85rem" }}
+									value={selectedProjectId}
+									onChange={(e) => setSelectedProjectId(e.target.value)}
+								>
+									<option value="">-- Sin Proyecto (No RAG) --</option>
+									{projectsArr.map((p) => (
+										<option key={p.id} value={p.id}>
+											📂 {p.name}
+										</option>
+									))}
+								</select>
+
+								<select
+									style={{ width: "auto", fontSize: "0.85rem" }}
+									value={selectedSourceId}
+									onChange={(e) => loadSourceContent(e.target.value)}
+								>
+									<option value="">-- Seleccionar Log --</option>
+									{sourcesArr.map((s) => (
+										<option key={s.id} value={s.id}>
+											📄 {s.name}
+										</option>
+									))}
+								</select>
+							</div>
+						</div>
+						<div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem" }}>
+							<div style={{ flex: 1 }}>
+								<label
+									htmlFor="provider-select"
+									className="text-muted"
+									style={{ fontSize: "0.8rem", display: "block", marginBottom: "0.4rem" }}
+								>
+									IA Provider
+								</label>
+								<select
+									id="provider-select"
+									value={provider}
+									onChange={(e) => setProvider(e.target.value)}
+								>
+									<option value="ollama">Ollama</option>
+									<option value="openrouter">OpenRouter</option>
+								</select>
+							</div>
+							<div style={{ flex: 1 }}>
+								<label
+									htmlFor="model-select"
+									className="text-muted"
+									style={{ fontSize: "0.8rem", display: "block", marginBottom: "0.4rem" }}
+								>
+									Modelo
+								</label>
+								<select
+									id="model-select"
+									value={model}
+									onChange={(e) => {
+										const val = e.target.value;
+										setModel(val);
+										const saved = savedModels.find((s) => s.modelId === val);
+										if (saved) setProvider(saved.provider);
+									}}
+								>
+									{savedModels.length > 0 && (
+										<optgroup label="⭐ Guardados">
+											{savedModels.map((s) => (
+												<option key={`saved-${s.id}`} value={s.modelId}>
+													{s.displayName}
+												</option>
+											))}
+										</optgroup>
+									)}
+									{models.length > 0 && (
+										<optgroup label={`📡 ${provider} (Live)`}>
+											{models.map((m) => (
+												<option key={m} value={m}>
+													{m}
+												</option>
+											))}
+										</optgroup>
+									)}
+								</select>
+							</div>
+							<div style={{ flex: 1 }}>
+								<label
+									htmlFor="role-select"
+									className="text-muted"
+									style={{ fontSize: "0.8rem", display: "block", marginBottom: "0.4rem" }}
+								>
+									Role
+								</label>
+								<select id="role-select" value={role} onChange={(e) => setRole(e.target.value)}>
+									{roles.map((r) => (
+										<option key={r.id} value={r.id}>
+											{r.name}
+										</option>
+									))}
+								</select>
+							</div>
+						</div>
+
+						<textarea
+							id="changelog-input"
+							placeholder="Pega aquí el changelog técnico crudo (AYER)..."
+							value={changelog}
+							onChange={(e) => setChangelog(e.target.value)}
+							style={{ height: "250px", resize: "none", marginBottom: "1rem" }}
+						/>
+
+						<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+							<div>
+								<label htmlFor="today-input" className="text-muted" style={{ fontSize: "0.8rem" }}>
+									⬇️ HOY / PENDIENTES
+								</label>
+								<textarea
+									id="today-input"
+									placeholder="¿Qué planes hay para hoy?"
+									value={today}
+									onChange={(e) => setToday(e.target.value)}
+									style={{ height: "120px", resize: "none", fontSize: "0.85rem" }}
+								/>
+							</div>
+							<div>
+								<label htmlFor="blockers-input" className="text-muted" style={{ fontSize: "0.8rem" }}>
+									⛔ BLOQUEOS
+								</label>
+								<textarea
+									id="blockers-input"
+									placeholder="¿Algo que te detenga?"
+									value={blockers}
+									onChange={(e) => setBlockers(e.target.value)}
+									style={{ height: "120px", resize: "none", fontSize: "0.85rem" }}
+								/>
+							</div>
+							<div>
+								<label htmlFor="doubts-input" className="text-muted" style={{ fontSize: "0.8rem" }}>
+									❓ DUDAS
+								</label>
+								<textarea
+									id="doubts-input"
+									placeholder="Cualquier duda técnica..."
+									value={doubts}
+									onChange={(e) => setDoubts(e.target.value)}
+									style={{ height: "120px", resize: "none", fontSize: "0.85rem" }}
+								/>
+							</div>
+						</div>
+
+						<button type="button" onClick={generateReport} disabled={loading} style={{ width: "100%" }}>
+							{loading ? (
+								<div className="flex-center gap-1">
+									<Loader2 size={18} className="animate-spin" />
+									<span>{progress || "Procesando..."}</span>
+								</div>
+							) : (
+								<>
+									<Sparkles size={18} /> Generar Reporte Mágico
+								</>
+							)}
+						</button>
+					</section>
+
+					<section className="glass-card">
+						<div className="flex-between mb-2">
+							<h3>Vista Previa</h3>
+							<div className="flex-gap-1">
+								<button type="button" className="secondary" onClick={downloadReport} disabled={!report}>
+									<Download size={16} /> Descargar .md
+								</button>
+								<button
+									type="button"
+									className="secondary"
+									onClick={() => sendExistingToDiscord(report)}
+									disabled={!report || sendingDiscord}
+								>
+									{sendingDiscord ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+									<span>{sendingDiscord ? " Enviando..." : " Enviar a Discord"}</span>
+								</button>
+							</div>
+						</div>
 						<div
 							style={{
-								height: "100%",
-								display: "flex",
-								alignItems: "center",
-								justifyContent: "center",
-								textAlign: "center",
+								background: "var(--bg-deep)",
+								padding: "1.5rem",
+								borderRadius: "12px",
+								height: "480px",
+								overflowY: "auto",
+								border: "1px solid var(--border-luxe)",
+								whiteSpace: "pre-wrap",
+								color: report ? "var(--text-main)" : "var(--text-dim)",
 							}}
 						>
-							El reporte generado aparecerá aquí de forma espectacular...
+							{report ? (
+								<RichMarkdownRenderer content={report} />
+							) : (
+								<div className="flex-center text-muted" style={{ height: "100%", textAlign: "center" }}>
+									El reporte generado aparecerá aquí de forma espectacular...
+								</div>
+							)}
 						</div>
-					)}
+					</section>
 				</div>
-			</section>
+			) : (
+				<div className="glass-card">
+					<div className="flex-between mb-2">
+						<h3>
+							<History size={20} style={{ verticalAlign: "middle", marginRight: "0.5rem" }} />
+							Historial de Informes
+						</h3>
+						<span className="text-muted" style={{ fontSize: "0.85rem" }}>
+							{reportsArr.length} informe(s)
+						</span>
+					</div>
+
+					<div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+						{reportsArr.length === 0 ? (
+							<div className="text-muted flex-center" style={{ padding: "5rem" }}>
+								Aún no hay informes generados.
+							</div>
+						) : (
+							reportsArr.map((r) => (
+								<div key={r.id} className="glass-card" style={{ padding: "1.2rem", background: "var(--bg-card)" }}>
+									<div className="flex-between">
+										<div style={{ flex: 1 }}>
+											<strong>{r.title}</strong>
+											<div className="text-muted" style={{ fontSize: "0.8rem", marginTop: "0.2rem" }}>
+												{new Date(r.createdAt).toLocaleString()} · {r.provider}/{r.model} · Rol: {r.role}
+											</div>
+										</div>
+										<div className="flex-gap-1">
+											<button
+												className="secondary"
+												title="Descargar"
+												onClick={() => downloadReportFile(r.content, r.title)}
+											>
+												<Download size={16} />
+											</button>
+											<button
+												className="secondary"
+												title="Discord"
+												onClick={() => sendExistingToDiscord(r.content)}
+												disabled={sendingDiscord}
+											>
+												<Send size={16} />
+											</button>
+											<button
+												className="secondary"
+												title="Ver"
+												onClick={() => setExpandedId(expandedId === r.id ? null : r.id)}
+											>
+												{expandedId === r.id ? <EyeOff size={16} /> : <Eye size={16} />}
+											</button>
+											<button
+												className="secondary"
+												title="Borrar"
+												onClick={() => deleteReport(r.id)}
+												style={{ color: "#ff4444" }}
+											>
+												<Trash2 size={16} />
+											</button>
+										</div>
+									</div>
+									{expandedId === r.id && (
+										<div style={{ marginTop: "1rem", borderTop: "1px solid var(--border-luxe)", paddingTop: "1rem" }}>
+											<RichMarkdownRenderer content={r.content} />
+										</div>
+									)}
+								</div>
+							))
+						)}
+					</div>
+				</div>
+			)}
 		</div>
 	);
 };

@@ -80,6 +80,39 @@ export class ProjectService {
 		return project;
 	}
 
+	static async updateProject(
+		id: number,
+		name: string,
+		rootPath: string,
+		changelogPath: string,
+	) {
+		const oldProject = await this.getProject(id);
+		if (!oldProject) throw new Error("Proyecto no encontrado");
+
+		// 1. Actualizar el proyecto
+		await db
+			.update(projects)
+			.set({ name, rootPath })
+			.where(eq(projects.id, id));
+
+		// 2. Actualizar el nombre y la ruta del changelog fuente vinculado
+		if (oldProject.changelogSourceId) {
+			await db
+				.update(sources)
+				.set({ name: `${name} (Changelog)`, path: changelogPath })
+				.where(eq(sources.id, oldProject.changelogSourceId));
+		}
+
+		// 3. Si la ruta raíz cambió, re-indexar archivos
+		if (oldProject.rootPath !== rootPath) {
+			this.indexProjectFiles(id, rootPath).catch((err) =>
+				console.error("Error re-indexing project files:", err),
+			);
+		}
+
+		return await this.getProject(id);
+	}
+
 	static async indexProjectFiles(projectId: number, rootPath: string) {
 		// Limpiar archivos anteriores si existen (re-indexación)
 		await db.delete(projectFiles).where(eq(projectFiles.projectId, projectId));

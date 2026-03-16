@@ -361,14 +361,14 @@ const Dashboard = () => {
 						>
 							<ShieldCheck size={20} color="var(--accent-primary)" />
 							<strong style={{ fontSize: "1.1rem" }}>
-								2. Registra tus Fuentes
+								2. Crea tu Proyecto (RAG)
 							</strong>
 						</div>
 						<p className="text-muted" style={{ marginLeft: "2.75rem" }}>
-							En la sección de <strong>Archivos</strong>, añade las rutas
-							locales de tus archivos <code>CHANGELOG.md</code> o logs técnicos.
-							Esto permitirá que Zentinel lea los cambios automáticamente para
-							generar informes.
+							En la sección de <strong>Proyecto</strong>, registra la carpeta raíz
+							de tu código. Zentinel indexará tus archivos automáticamente (RAG)
+							y vinculará tu <code>CHANGELOG.md</code> para que la IA tenga
+							contexto técnico total de tus desarrollos.
 						</p>
 					</section>
 

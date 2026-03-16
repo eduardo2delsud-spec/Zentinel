@@ -8,7 +8,7 @@ import Sidebar from "./components/Sidebar";
 import Dashboard from "./pages/Dashboard";
 import Informes from "./pages/Informes";
 import Configuracion from "./pages/Configuracion";
-import { Proyecto, Historial, Tareas, DiscordSettings } from "./pages/Sections";
+import { Proyecto, Tareas, DiscordSettings } from "./pages/Sections";
 import "./index.css";
 
 function App() {
@@ -24,7 +24,6 @@ function App() {
 						<Route path="/informes" element={<Informes />} />
 						<Route path="/tareas" element={<Tareas />} />
 						<Route path="/discord" element={<DiscordSettings />} />
-						<Route path="/historial" element={<Historial />} />
 						<Route path="/configuracion" element={<Configuracion />} />
 					</Routes>
 				</main>

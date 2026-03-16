@@ -84,6 +84,7 @@ export const scheduledTasks = sqliteTable("scheduled_tasks", {
 	model: text("model").notNull(),
 	discordWebhookUrl: text("discord_webhook_url"),
 	discordMentionId: text("discord_mention_id"),
+	projectId: integer("project_id").references(() => projects.id),
 	active: integer("active", { mode: "boolean" }).notNull().default(true),
 	createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
 		() => new Date(),
