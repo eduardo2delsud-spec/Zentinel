@@ -62,6 +62,8 @@ const Informes = () => {
 	const [activeTab, setActiveTab] = useState<"generar" | "lista">("generar");
 	const [reportsArr, setReportsArr] = useState<Report[]>([]);
 	const [expandedId, setExpandedId] = useState<number | null>(null);
+	const [editingReportId, setEditingReportId] = useState<number | null>(null);
+	const [editingContent, setEditingContent] = useState("");
 
 	useEffect(() => {
 		const newSocket = io("http://localhost:3001");
@@ -231,6 +233,20 @@ const Informes = () => {
 			alert("Error al enviar a Discord.");
 		} finally {
 			setSendingDiscord(false);
+		}
+	};
+
+	const saveEditedReport = async () => {
+		if (!editingReportId) return;
+		try {
+			await axios.put(`${API_BASE}/reports/${editingReportId}`, {
+				content: editingContent,
+			});
+			setEditingReportId(null);
+			loadReports();
+			alert("Informe actualizado correctamente");
+		} catch {
+			alert("Error al actualizar el informe");
 		}
 	};
 
@@ -536,7 +552,40 @@ const Informes = () => {
 									</div>
 									{expandedId === r.id && (
 										<div style={{ marginTop: "1rem", borderTop: "1px solid var(--border-luxe)", paddingTop: "1rem" }}>
-											<RichMarkdownRenderer content={r.content} />
+											{editingReportId === r.id ? (
+												<div>
+													<textarea
+														value={editingContent}
+														onChange={(e) => setEditingContent(e.target.value)}
+														style={{ height: "400px", background: "var(--bg-deep)", color: "var(--text-main)", marginBottom: "1rem" }}
+													/>
+													<div className="flex-gap-1">
+														<button onClick={saveEditedReport}>Guardar Cambios</button>
+														<button className="secondary" onClick={() => setEditingReportId(null)}>
+															Cancelar
+														</button>
+													</div>
+												</div>
+											) : (
+												<div>
+													<div className="flex-between mb-1">
+														<span className="text-muted" style={{ fontSize: "0.8rem" }}>
+															Vista de Lectura
+														</span>
+														<button
+															className="secondary"
+															style={{ padding: "0.2rem 0.6rem", fontSize: "0.8rem" }}
+															onClick={() => {
+																setEditingReportId(r.id);
+																setEditingContent(r.content);
+															}}
+														>
+															Editar Contenido
+														</button>
+													</div>
+													<RichMarkdownRenderer content={r.content} />
+												</div>
+											)}
 										</div>
 									)}
 								</div>

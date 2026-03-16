@@ -94,6 +94,7 @@ export const Proyecto = () => {
 	const [showAdd, setShowAdd] = useState(false);
 	const [showBrowser, setShowBrowser] = useState(false);
 	const [browserTarget, setBrowserTarget] = useState<"root" | "changelog">("root");
+	const [editingProjectId, setEditingProjectId] = useState<number | null>(null);
 
 	const loadProjects = useCallback(async () => {
 		try {
@@ -114,18 +115,48 @@ export const Proyecto = () => {
 		if (!newName || !newRootPath || !newChangelogPath)
 			return alert("Completa todos los campos (Changelog es obligatorio)");
 		try {
-			await axios.post(`${API_BASE}/projects`, {
-				name: newName,
-				rootPath: newRootPath,
-				changelogPath: newChangelogPath,
-			});
+			if (editingProjectId) {
+				await axios.put(`${API_BASE}/projects/${editingProjectId}`, {
+					name: newName,
+					rootPath: newRootPath,
+					changelogPath: newChangelogPath,
+				});
+			} else {
+				await axios.post(`${API_BASE}/projects`, {
+					name: newName,
+					rootPath: newRootPath,
+					changelogPath: newChangelogPath,
+				});
+			}
 			setNewName("");
 			setNewRootPath("");
 			setNewChangelogPath("");
 			setShowAdd(false);
+			setEditingProjectId(null);
 			loadProjects();
 		} catch {
-			alert("Error al crear el proyecto y procesar RAG");
+			alert("Error al procesar el proyecto");
+		}
+	};
+
+	const startEditProject = (p: Project) => {
+		setEditingProjectId(p.id);
+		setNewName(p.name);
+		setNewRootPath(p.rootPath);
+		// Note: we'd need to fetch the changelog path separately or include it in the project object.
+		// For now, let's assume we fetch it or it's provided. 
+		// Actually, p.changelogSourceId is available. Let's fetch the path.
+		fetchSourcePath(p.changelogSourceId);
+		setShowAdd(true);
+	};
+
+	const fetchSourcePath = async (sourceId: number) => {
+		try {
+			const { data } = await axios.get(`${API_BASE}/sources`);
+			const source = data.find((s: any) => s.id === sourceId);
+			if (source) setNewChangelogPath(source.path);
+		} catch {
+			console.error("Error fetching source path");
 		}
 	};
 
@@ -161,8 +192,16 @@ export const Proyecto = () => {
 				<div className="glass-card">
 					<div className="flex-between mb-2">
 						<h3>📂 Gestión de Proyectos (RAG + Contexto)</h3>
-						<button onClick={() => setShowAdd(!showAdd)}>
-							<Plus size={18} /> {showAdd ? "Cancelar" : "Nuevo Proyecto"}
+						<button onClick={() => {
+							setShowAdd(!showAdd);
+							if (showAdd) {
+								setEditingProjectId(null);
+								setNewName("");
+								setNewRootPath("");
+								setNewChangelogPath("");
+							}
+						}}>
+							{showAdd ? "Cancelar" : <><Plus size={18} /> Nuevo Proyecto</>}
 						</button>
 					</div>
 
@@ -222,7 +261,7 @@ export const Proyecto = () => {
 							</div>
 
 							<button onClick={addProject}>
-								<Save size={18} /> Crear Proyecto y Procesar RAG
+								<Save size={18} /> {editingProjectId ? "Actualizar Proyecto" : "Crear Proyecto y Procesar RAG"}
 							</button>
 						</div>
 					)}
@@ -283,13 +322,22 @@ export const Proyecto = () => {
 												📝 ID Changelog: {p.changelogSourceId}
 											</div>
 										</div>
-										<button
-											className="secondary"
-											onClick={() => deleteProject(p.id)}
-											style={{ color: "#ff4444" }}
-										>
-											<Trash2 size={16} />
-										</button>
+										<div className="flex-gap-1">
+											<button
+												className="secondary"
+												onClick={() => startEditProject(p)}
+												style={{ color: "var(--accent-primary)" }}
+											>
+												Editar
+											</button>
+											<button
+												className="secondary"
+												onClick={() => deleteProject(p.id)}
+												style={{ color: "#ff4444" }}
+											>
+												<Trash2 size={16} />
+											</button>
+										</div>
 									</div>
 								</div>
 							))
@@ -331,6 +379,9 @@ export const Tareas = () => {
 	const [taskModel, setTaskModel] = useState("");
 	const [taskWebhook, setTaskWebhook] = useState("");
 	const [taskMentionId, setTaskMentionId] = useState("");
+	const [taskProjectId, setTaskProjectId] = useState<string>("");
+	const [projectsArr, setProjectsArr] = useState<Project[]>([]);
+	const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
 
 	const toggleDay = (key: string) => {
 		setSelectedDays((prev) =>
@@ -340,14 +391,16 @@ export const Tareas = () => {
 
 	const loadData = useCallback(async () => {
 		try {
-			const [tRes, sRes, rRes] = await Promise.all([
+			const [tRes, sRes, rRes, pRes] = await Promise.all([
 				axios.get(`${API_BASE}/tasks`),
 				axios.get(`${API_BASE}/sources`),
 				axios.get(`${API_BASE}/prompts`),
+				axios.get(`${API_BASE}/projects`),
 			]);
 			setTasks(tRes.data);
 			setSourcesArr(sRes.data);
 			setRoles(rRes.data.roles || []);
+			setProjectsArr(pRes.data);
 			if (sRes.data.length > 0 && !taskSourceId)
 				setTaskSourceId(sRes.data[0].id.toString());
 		} catch {
@@ -367,24 +420,58 @@ export const Tareas = () => {
 			selectedDays.length === 7 ? "*" : selectedDays.sort().join(",");
 		const cronExpr = `${taskMinute} ${taskHour} * * ${cronDays}`;
 
+		const payload = {
+			name: taskName,
+			cron: cronExpr,
+			sourceId: Number(taskSourceId),
+			roleId: taskRoleId,
+			provider: taskProvider,
+			model: taskModel,
+			discordWebhookUrl: taskWebhook || null,
+			discordMentionId: taskMentionId || null,
+			projectId: taskProjectId ? Number(taskProjectId) : null,
+			active: true,
+		};
+
 		try {
-			await axios.post(`${API_BASE}/tasks`, {
-				name: taskName,
-				cron: cronExpr,
-				sourceId: Number(taskSourceId),
-				roleId: taskRoleId,
-				provider: taskProvider,
-				model: taskModel,
-				discordWebhookUrl: taskWebhook || null,
-				discordMentionId: taskMentionId || null,
-				active: true,
-			});
+			if (editingTaskId) {
+				await axios.put(`${API_BASE}/tasks/${editingTaskId}`, payload);
+			} else {
+				await axios.post(`${API_BASE}/tasks`, payload);
+			}
 			setShowAdd(false);
-			setTaskName("");
+			setEditingTaskId(null);
+			resetTaskForm();
 			loadData();
 		} catch {
 			alert("Error al guardar tarea");
 		}
+	};
+
+	const resetTaskForm = () => {
+		setTaskName("");
+		setTaskWebhook("");
+		setTaskMentionId("");
+		setTaskProjectId("");
+		setEditingTaskId(null);
+	};
+
+	const startEditTask = (t: any) => {
+		setEditingTaskId(t.id);
+		setTaskName(t.name);
+		const cronParts = t.cron.split(" ");
+		setTaskMinute(cronParts[0]);
+		setTaskHour(cronParts[1]);
+		const days = cronParts[4] === "*" ? "0,1,2,3,4,5,6" : cronParts[4];
+		setSelectedDays(days.split(","));
+		setTaskSourceId(t.sourceId.toString());
+		setTaskRoleId(t.roleId);
+		setTaskProvider(t.provider);
+		setTaskModel(t.model);
+		setTaskWebhook(t.discordWebhookUrl || "");
+		setTaskMentionId(t.discordMentionId || "");
+		setTaskProjectId(t.projectId?.toString() || "");
+		setShowAdd(true);
 	};
 
 	const deleteTask = async (id: number) => {
@@ -402,8 +489,11 @@ export const Tareas = () => {
 			<div className="glass-card">
 				<div className="flex-between mb-2">
 					<h3>⏰ Tareas Programadas</h3>
-					<button onClick={() => setShowAdd(!showAdd)}>
-						<Plus size={18} /> {showAdd ? "Cancelar" : "Nueva Tarea"}
+					<button onClick={() => {
+						setShowAdd(!showAdd);
+						if (showAdd) resetTaskForm();
+					}}>
+						{showAdd ? "Cancelar" : <><Plus size={18} /> Nueva Tarea</>}
 					</button>
 				</div>
 
@@ -471,7 +561,7 @@ export const Tareas = () => {
 								</div>
 							</div>
 							<div className="form-group">
-								<label>Fuente de Datos</label>
+								<label>Fuente de Datos (Log Diario)</label>
 								<select
 									value={taskSourceId}
 									onChange={(e) => setTaskSourceId(e.target.value)}
@@ -483,6 +573,21 @@ export const Tareas = () => {
 									))}
 								</select>
 							</div>
+						</div>
+
+						<div className="form-group">
+							<label>Proyecto Vinculado (Opcional para RAG)</label>
+							<select
+								value={taskProjectId}
+								onChange={(e) => setTaskProjectId(e.target.value)}
+							>
+								<option value="">-- Sin Proyecto --</option>
+								{projectsArr.map((p) => (
+									<option key={p.id} value={p.id}>
+										📂 {p.name}
+									</option>
+								))}
+							</select>
 						</div>
 
 						<div className="grid-cols-2">
@@ -536,16 +641,16 @@ export const Tareas = () => {
 						</div>
 
 						<div className="form-group">
-							<label>ID de Usuario Discord a Mencionar (Opcional)</label>
+							<label>Menciones Discord (IDs separados por coma/espacio)</label>
 							<input
 								value={taskMentionId}
 								onChange={(e) => setTaskMentionId(e.target.value)}
-								placeholder="Ej. 123456789012345678"
+								placeholder="Ej. 12345678, 87654321"
 							/>
 						</div>
 
 						<button onClick={saveTask}>
-							<Save size={18} /> Programar Tarea
+							<Save size={18} /> {editingTaskId ? "Actualizar Tarea" : "Programar Tarea"}
 						</button>
 					</div>
 				)}
@@ -612,13 +717,22 @@ export const Tareas = () => {
 											</div>
 										)}
 									</div>
-									<button
-										className="secondary"
-										onClick={() => deleteTask(t.id)}
-										style={{ color: "#ff4444" }}
-									>
-										<Trash2 size={16} />
-									</button>
+									<div className="flex-gap-1">
+										<button
+											className="secondary"
+											onClick={() => startEditTask(t)}
+											style={{ color: "var(--accent-primary)" }}
+										>
+											Editar
+										</button>
+										<button
+											className="secondary"
+											onClick={() => deleteTask(t.id)}
+											style={{ color: "#ff4444" }}
+										>
+											<Trash2 size={16} />
+										</button>
+									</div>
 								</div>
 							</div>
 						))
@@ -686,11 +800,11 @@ export const DiscordSettings = () => {
 				</div>
 			</div>
 			<div className="form-group">
-				<label>ID de Usuario Discord a Mencionar (Opcional)</label>
+				<label>Menciones Discord (IDs separados por coma/espacio)</label>
 				<input
 					value={mentionId}
 					onChange={(e) => setMentionId(e.target.value)}
-					placeholder="Ej. 123456789012345678 (Click derecho → Copiar ID)"
+					placeholder="Ej. 12345678, 87654321"
 				/>
 				<div
 					className="text-muted"

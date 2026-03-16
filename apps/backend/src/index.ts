@@ -250,6 +250,22 @@ app.delete("/api/projects/:id", async (req, res) => {
 	}
 });
 
+app.put("/api/projects/:id", async (req, res) => {
+	const { id } = req.params;
+	const { name, rootPath, changelogPath } = req.body;
+	try {
+		const project = await ProjectService.updateProject(
+			Number(id),
+			name,
+			rootPath,
+			changelogPath,
+		);
+		res.json(project);
+	} catch (error) {
+		res.status(500).json({ error: (error as Error).message });
+	}
+});
+
 // History (Reports) Endpoints
 app.get("/api/reports", async (_req, res) => {
 	const allReports = await db
@@ -263,6 +279,21 @@ app.delete("/api/reports/:id", async (req, res) => {
 	const { id } = req.params;
 	try {
 		await db.delete(reports).where(eq(reports.id, Number(id)));
+		res.json({ success: true });
+	} catch (error) {
+		const errorMessage = error instanceof Error ? error.message : "Error desconocido";
+		res.status(500).json({ error: errorMessage });
+	}
+});
+
+app.put("/api/reports/:id", async (req, res) => {
+	const { id } = req.params;
+	const { content } = req.body;
+	try {
+		await db
+			.update(reports)
+			.set({ content })
+			.where(eq(reports.id, Number(id)));
 		res.json({ success: true });
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : "Error desconocido";
@@ -296,6 +327,33 @@ app.delete("/api/tasks/:id", async (req, res) => {
 	try {
 		schedulerService.stopTask(Number(id));
 		await db.delete(scheduledTasks).where(eq(scheduledTasks.id, Number(id)));
+		res.json({ success: true });
+	} catch (error) {
+		const errorMessage = error instanceof Error ? error.message : "Error desconocido";
+		res.status(500).json({ error: errorMessage });
+	}
+});
+
+app.put("/api/tasks/:id", async (req, res) => {
+	const { id } = req.params;
+	const taskData = req.body;
+	try {
+		await db
+			.update(scheduledTasks)
+			.set(taskData)
+			.where(eq(scheduledTasks.id, Number(id)));
+
+		// Re-schedule the task to apply changes
+		schedulerService.stopTask(Number(id));
+		const updated = await db
+			.select()
+			.from(scheduledTasks)
+			.where(eq(scheduledTasks.id, Number(id)))
+			.limit(1);
+		if (updated[0]) {
+			schedulerService.scheduleTask(updated[0]);
+		}
+
 		res.json({ success: true });
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : "Error desconocido";

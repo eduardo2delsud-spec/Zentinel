@@ -42,22 +42,31 @@ class SchedulerService {
 
 				const changelogText = await fs.readFile(source[0].path, "utf-8");
 
-				// 2. Generate report
+				// 2. Get RAG context if projectId is set
+				let projectContext = "";
+				if (task.projectId) {
+					const { ProjectService } = await import("./project.service.js");
+					projectContext = await ProjectService.getProjectContext(
+						Number(task.projectId),
+					);
+				}
+
+				// 3. Generate report
 				const service = AIServiceFactory.getService(task.provider);
 				const systemPrompt = await promptManager.getPrompt(task.roleId);
 
 				const report = await service.generateReport({
 					text: changelogText,
 					model: task.model,
-					systemPrompt,
+					systemPrompt: `${systemPrompt}\n\nCONTEXTO DEL PROYECTO (RAG):\n${projectContext}\n\nIMPORTANTE: Genera un reporte profesional técnico basado en el contexto de ayer. Mejora la redacción, usa emojis y estructura el contenido de forma clara.`,
 				});
 
-				// 3. Send to Discord if configured
+				// 4. Send to Discord if configured
 				if (task.discordWebhookUrl) {
 					await discordManager.sendReport(
 						task.discordWebhookUrl,
 						report,
-						`Automatic Report: ${task.name}`,
+						`📅 Reporte Automático: ${task.name}`,
 						6514417, // Indigo color in decimal
 						task.discordMentionId,
 					);
