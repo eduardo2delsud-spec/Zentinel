@@ -10,6 +10,7 @@ Todas las actividades importantes del proyecto se registran aquí.
 - **Dashboard Estadístico**: Visualización de uso de tokens y salud del código (sentimiento) utilizando Recharts. [2026-03-16]
 - **Biblioteca de Prompts**: Sistema de importación/exportación de roles en JSON y plantillas predefinidas (Tech Lead, PO, etc.). [2026-03-16]
 - **Descarga de Informes**: Botón para descargar la vista previa del informe en formato Markdown (.md). [2026-03-16]
+- **Secciones de Informe Enriquecidas**: Nuevos campos para "Hoy/Pendientes", "Bloqueos" y "Dudas" en la generación de informes, permitiendo un contexto más completo para la IA. [2026-03-16]
 
 ### Changed (Cambio)
 - **Estructura de Base de Datos**: Añadidas columnas `tokensUsed` y `sentimentScore` a la tabla de reportes para analíticas. [2026-03-16]

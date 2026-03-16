@@ -265,7 +265,8 @@ app.delete("/api/tasks/:id", async (req, res) => {
 });
 
 app.post("/api/generate", async (req, res) => {
-	const { provider, text, model, role, socketId } = req.body;
+	const { provider, text, model, role, socketId, today, blockers, doubts } =
+		req.body;
 	try {
 		const service = AIServiceFactory.getService(provider);
 		const systemPrompt = await promptManager.getPrompt(role);
@@ -276,11 +277,29 @@ app.post("/api/generate", async (req, res) => {
 			}
 		};
 
-		emitProgress("Preparando datos...");
+		const fullContext = `
+⏪ AYER (LOG TÉCNICO):
+${text}
+
+⬇️ HOY / PENDIENTES:
+${today || "N/A"}
+
+⛔ BLOQUEOS:
+${blockers || "N/A"}
+
+❓ DUDAS:
+${doubts || "N/A"}
+`.trim();
+
+		emitProgress("Preparando datos y contexto...");
 		const reportContent = await service.generateReport({
-			text,
+			text: fullContext,
 			model,
-			systemPrompt,
+			systemPrompt: `${systemPrompt}\n\nIMPORTANTE: Genera un informe profesional siguiendo estrictamente este formato:
+- Usa emojis para las secciones.
+- Mejora la redacción técnica de lo ingresado.
+- Mantén la estructura de: AYER, HOY/PENDIENTES, BLOQUEOS y DUDAS.
+- Si una sección es "N/A", menciónala brevemente como "Sin novedades" o similar de forma elegante.`,
 			onProgress: (msg) => emitProgress(msg),
 		});
 

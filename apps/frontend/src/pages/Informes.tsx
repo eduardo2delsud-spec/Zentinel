@@ -35,6 +35,10 @@ const Informes = () => {
 	const [progress, setProgress] = useState("");
 	const [socketId, setSocketId] = useState("");
 
+	const [today, setToday] = useState("");
+	const [blockers, setBlockers] = useState("");
+	const [doubts, setDoubts] = useState("");
+
 	useEffect(() => {
 		const newSocket = io("http://localhost:3001");
 
@@ -118,6 +122,9 @@ const Informes = () => {
 				model,
 				role,
 				socketId,
+				today,
+				blockers,
+				doubts,
 			});
 			setReport(data.report);
 			setProgress("");
@@ -159,6 +166,7 @@ const Informes = () => {
 				<div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem" }}>
 					<div style={{ flex: 1 }}>
 						<label
+							htmlFor="provider-select"
 							className="text-muted"
 							style={{
 								fontSize: "0.8rem",
@@ -169,6 +177,7 @@ const Informes = () => {
 							IA Provider
 						</label>
 						<select
+							id="provider-select"
 							value={provider}
 							onChange={(e) => setProvider(e.target.value)}
 						>
@@ -178,6 +187,7 @@ const Informes = () => {
 					</div>
 					<div style={{ flex: 1 }}>
 						<label
+							htmlFor="model-select"
 							className="text-muted"
 							style={{
 								fontSize: "0.8rem",
@@ -188,6 +198,7 @@ const Informes = () => {
 							Modelo
 						</label>
 						<select
+							id="model-select"
 							value={model}
 							onChange={(e) => {
 								const val = e.target.value;
@@ -218,6 +229,7 @@ const Informes = () => {
 					</div>
 					<div style={{ flex: 1 }}>
 						<label
+							htmlFor="role-select"
 							className="text-muted"
 							style={{
 								fontSize: "0.8rem",
@@ -227,7 +239,11 @@ const Informes = () => {
 						>
 							Role
 						</label>
-						<select value={role} onChange={(e) => setRole(e.target.value)}>
+						<select
+							id="role-select"
+							value={role}
+							onChange={(e) => setRole(e.target.value)}
+						>
 							{roles.map((r) => (
 								<option key={r.id} value={r.id}>
 									{r.name}
@@ -238,13 +254,73 @@ const Informes = () => {
 				</div>
 
 				<textarea
-					placeholder="Pega aquí el changelog técnico crudo..."
+					id="changelog-input"
+					placeholder="Pega aquí el changelog técnico crudo (AYER)..."
 					value={changelog}
 					onChange={(e) => setChangelog(e.target.value)}
-					style={{ height: "350px", resize: "none" }}
+					style={{ height: "250px", resize: "none", marginBottom: "1rem" }}
 				/>
 
+				<div
+					style={{
+						display: "grid",
+						gridTemplateColumns: "1fr 1fr 1fr",
+						gap: "1rem",
+						marginBottom: "1rem",
+					}}
+				>
+					<div>
+						<label
+							htmlFor="today-input"
+							className="text-muted"
+							style={{ fontSize: "0.8rem" }}
+						>
+							⬇️ HOY / PENDIENTES
+						</label>
+						<textarea
+							id="today-input"
+							placeholder="¿Qué planes hay para hoy?"
+							value={today}
+							onChange={(e) => setToday(e.target.value)}
+							style={{ height: "120px", resize: "none", fontSize: "0.85rem" }}
+						/>
+					</div>
+					<div>
+						<label
+							htmlFor="blockers-input"
+							className="text-muted"
+							style={{ fontSize: "0.8rem" }}
+						>
+							⛔ BLOQUEOS
+						</label>
+						<textarea
+							id="blockers-input"
+							placeholder="¿Algo que te detenga?"
+							value={blockers}
+							onChange={(e) => setBlockers(e.target.value)}
+							style={{ height: "120px", resize: "none", fontSize: "0.85rem" }}
+						/>
+					</div>
+					<div>
+						<label
+							htmlFor="doubts-input"
+							className="text-muted"
+							style={{ fontSize: "0.8rem" }}
+						>
+							❓ DUDAS
+						</label>
+						<textarea
+							id="doubts-input"
+							placeholder="Cualquier duda técnica..."
+							value={doubts}
+							onChange={(e) => setDoubts(e.target.value)}
+							style={{ height: "120px", resize: "none", fontSize: "0.85rem" }}
+						/>
+					</div>
+				</div>
+
 				<button
+					type="button"
 					onClick={generateReport}
 					disabled={loading}
 					style={{ marginTop: "1.5rem", width: "100%" }}
@@ -267,13 +343,14 @@ const Informes = () => {
 					<h3>Vista Previa</h3>
 					<div className="flex-gap-1">
 						<button
+							type="button"
 							className="secondary"
 							onClick={downloadReport}
 							disabled={!report}
 						>
 							<Download size={16} /> Descargar .md
 						</button>
-						<button className="secondary" disabled={!report}>
+						<button type="button" className="secondary" disabled={!report}>
 							<Send size={16} /> Enviar a Discord
 						</button>
 					</div>

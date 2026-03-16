@@ -19,11 +19,14 @@ const Mermaid = ({ chart }: { chart: string }) => {
 	useEffect(() => {
 		if (ref.current && chart) {
 			mermaid
-				.render(`mermaid-${Math.random().toString(36).substr(2, 9)}`, chart)
+				.render(`mermaid-${Math.random().toString(36).substring(2, 11)}`, chart)
 				.then((result) => {
 					if (ref.current) {
 						ref.current.innerHTML = result.svg;
 					}
+				})
+				.catch((err) => {
+					console.error("Mermaid Render Error:", err);
 				});
 		}
 	}, [chart]);
@@ -42,15 +45,16 @@ export const RichMarkdownRenderer = ({ content }: { content: string }) => {
 		<ReactMarkdown
 			remarkPlugins={[remarkGfm]}
 			components={{
-				code({ node, inline, className, children, ...props }: any) {
+				code(props) {
+					const { className, children } = props;
 					const match = /language-(\w+)/.exec(className || "");
 					const lang = match ? match[1] : "";
 
-					if (!inline && lang === "mermaid") {
+					if (lang === "mermaid") {
 						return <Mermaid chart={String(children).replace(/\n$/, "")} />;
 					}
 
-					return !inline && match ? (
+					return match ? (
 						<SyntaxHighlighter
 							style={vscDarkPlus}
 							language={lang}
@@ -61,14 +65,11 @@ export const RichMarkdownRenderer = ({ content }: { content: string }) => {
 								background: "rgba(0,0,0,0.3)",
 								border: "1px solid rgba(255,255,255,0.1)",
 							}}
-							{...props}
 						>
 							{String(children).replace(/\n$/, "")}
 						</SyntaxHighlighter>
 					) : (
-						<code className={className} {...props}>
-							{children}
-						</code>
+						<code className={className}>{children}</code>
 					);
 				},
 				table({ children }) {

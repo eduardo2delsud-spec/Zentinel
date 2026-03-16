@@ -473,7 +473,7 @@ const PromptsSection = () => {
 											}
 											loadPrompts();
 											alert("Prompts importados con éxito");
-										} catch (_err) {
+										} catch {
 											alert("Error al importar el archivo");
 										}
 									};
