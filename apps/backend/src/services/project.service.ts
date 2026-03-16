@@ -3,6 +3,7 @@ import path from "node:path";
 import { db } from "../db/index.js";
 import { projects, projectFiles, sources } from "../db/schema.js";
 import { eq } from "drizzle-orm";
+import ignore from "ignore";
 
 const ALLOWED_EXTENSIONS = [
 	".ts",
@@ -117,14 +118,51 @@ export class ProjectService {
 		// Limpiar archivos anteriores si existen (re-indexación)
 		await db.delete(projectFiles).where(eq(projectFiles.projectId, projectId));
 
+		// @ts-ignore
+		const ig = (ignore as any).default ? (ignore as any).default() : (ignore as any)();
+
+		// Cargar patrones de ignore (fijos de seguridad + archivos del proyecto)
+		const SECURITY_IGNORES = [
+			".env*",
+			"*.key",
+			"*.pem",
+			"*.cert",
+			"auth.json",
+			"credentials.json",
+			"secrets.json",
+			".aws/",
+			".ssh/",
+			"node_modules/",
+			".git/",
+		];
+		ig.add(SECURITY_IGNORES);
+
+		// Intentar cargar .gitignore y .dockerignore
+		for (const ignoreFile of [".gitignore", ".dockerignore"]) {
+			try {
+				const filePath = path.join(rootPath, ignoreFile);
+				const content = await fs.readFile(filePath, "utf-8");
+				ig.add(content);
+			} catch {
+				// El archivo no existe o no es legible, ignoramos
+			}
+		}
+
 		const filesToIndex: { name: string; path: string }[] = [];
 
-		async function scanDir(dir: string) {
+		const scanDir = async (dir: string) => {
 			const entries = await fs.readdir(dir, { withFileTypes: true });
 			for (const entry of entries) {
 				const fullPath = path.join(dir, entry.name);
+				const relativePath = path.relative(rootPath, fullPath).replace(/\\/g, "/");
+
+				// Verificar si el archivo/carpeta debe ser ignorado
+				if (ig.ignores(relativePath) || ig.ignores(relativePath + "/")) {
+					continue;
+				}
 
 				if (entry.isDirectory()) {
+					// EXCLUDED_DIRS es ahora un fallback si el gitignore no lo cubre
 					if (!EXCLUDED_DIRS.includes(entry.name)) {
 						await scanDir(fullPath);
 					}
@@ -138,7 +176,7 @@ export class ProjectService {
 					}
 				}
 			}
-		}
+		};
 
 		try {
 			await scanDir(rootPath);

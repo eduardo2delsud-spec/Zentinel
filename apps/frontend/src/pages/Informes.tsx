@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
-import { Send, Sparkles, Download, Loader2, History, Eye, EyeOff, Trash2, FileText } from "lucide-react";
+import { Send, Sparkles, Download, Loader2, History, Eye, EyeOff, Trash2, FileText, Edit, X, Save } from "lucide-react";
 import { io } from "socket.io-client";
 import { RichMarkdownRenderer } from "../components/RichMarkdownRenderer";
 
@@ -560,9 +560,11 @@ const Informes = () => {
 														style={{ height: "400px", background: "var(--bg-deep)", color: "var(--text-main)", marginBottom: "1rem" }}
 													/>
 													<div className="flex-gap-1">
-														<button onClick={saveEditedReport}>Guardar Cambios</button>
+														<button onClick={saveEditedReport}>
+															<Save size={18} /> Guardar Cambios
+														</button>
 														<button className="secondary" onClick={() => setEditingReportId(null)}>
-															Cancelar
+															<X size={18} /> Cancelar
 														</button>
 													</div>
 												</div>
@@ -570,7 +572,7 @@ const Informes = () => {
 												<div>
 													<div className="flex-between mb-1">
 														<span className="text-muted" style={{ fontSize: "0.8rem" }}>
-															Vista de Lectura
+															Vista de Lectura (Habilitado para edición)
 														</span>
 														<button
 															className="secondary"
@@ -580,7 +582,7 @@ const Informes = () => {
 																setEditingContent(r.content);
 															}}
 														>
-															Editar Contenido
+															<Edit size={14} /> Editar Contenido
 														</button>
 													</div>
 													<RichMarkdownRenderer content={r.content} />

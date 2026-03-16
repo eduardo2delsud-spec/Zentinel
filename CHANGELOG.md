@@ -11,7 +11,17 @@ Todas las actividades importantes del proyecto se registran aquí.
 - **Biblioteca de Prompts**: Sistema de importación/exportación de roles en JSON y plantillas predefinidas (Tech Lead, PO, etc.). [2026-03-16]
 - **Descarga de Informes**: Botón para descargar la vista previa del informe en formato Markdown (.md). [2026-03-16]
 - **Secciones de Informe Enriquecidas**: Nuevos campos para "Hoy/Pendientes", "Bloqueos" y "Dudas" en la generación de informes, permitiendo un contexto más completo para la IA. [2026-03-16]
-- **Gestión de Proyectos y RAG**: Nueva sección "Proyecto" (antes "Archivos") que permite crear proyectos, indexar archivos de código y utilizar ese contexto como RAG durante la generación de informes. [2026-03-16]
+- **Informes: Historial Integrado**: Integración del historial de informes como una pestaña dentro de "Informes", con opciones de re-descarga y re-envío a Discord. [2026-03-16]
+- **Informes: Edición de Reportes**: Capacidad de editar manualmente el contenido de informes generados en el historial para correcciones rápidas. [2026-03-16]
+- **Proyectos: Seguridad en RAG**: Implementación de filtrado automático respetando `.gitignore`, `.dockerignore` y reglas de seguridad para archivos sensibles (`.env`, llaves, secretos). [2026-03-16]
+- **Tareas: Contexto RAG Automático**: Las tareas programadas ahora pueden vincularse a proyectos para incluir contexto de código en reportes automáticos. [2026-03-16]
+- **Discord: Soporte Multiusuario**: Soporte para menciones de múltiples IDs de Discord en notificaciones y tareas. [2026-03-16]
+- **Gestión de Proyectos y RAG**: Nueva sección "Proyecto" que permite crear y **editar** proyectos, indexar archivos de código y utilizar ese contexto como RAG. [2026-03-16]
+
+### Changed (Cambio)
+- **CRUD Optimizado**: Proyectos y Tareas Programadas ahora son totalmente editables, facilitando ajustes de configuración. [2026-03-16]
+- **Refinamiento de UI**: Mejora visual con iconos contextuales (`Edit`, `Save`, `X`, `Plus`) y feedback mejorado en botones de acción. [2026-03-16]
+- **Estructura de Base de Datos**: Actualización de esquema para soportar `projectId` en tareas programadas y campos extendidos en reportes. [2026-03-16]
 
 ### Changed (Cambio)
 - **Estructura de Base de Datos**: Añadidas tablas `projects` y `project_files` para soportar RAG, y columnas `tokensUsed` y `sentimentScore` a la tabla de reportes. [2026-03-16]

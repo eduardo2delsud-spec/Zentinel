@@ -10,6 +10,8 @@ import {
 	Eye,
 	EyeOff,
 	MessageSquare,
+	Edit,
+	X,
 } from "lucide-react";
 import FileBrowser from "../components/FileBrowser";
 
@@ -201,7 +203,7 @@ export const Proyecto = () => {
 								setNewChangelogPath("");
 							}
 						}}>
-							{showAdd ? "Cancelar" : <><Plus size={18} /> Nuevo Proyecto</>}
+							{showAdd ? <><X size={18} /> Cancelar</> : <><Plus size={18} /> Nuevo Proyecto</>}
 						</button>
 					</div>
 
@@ -328,7 +330,7 @@ export const Proyecto = () => {
 												onClick={() => startEditProject(p)}
 												style={{ color: "var(--accent-primary)" }}
 											>
-												Editar
+												<Edit size={16} /> Editar
 											</button>
 											<button
 												className="secondary"
@@ -493,7 +495,7 @@ export const Tareas = () => {
 						setShowAdd(!showAdd);
 						if (showAdd) resetTaskForm();
 					}}>
-						{showAdd ? "Cancelar" : <><Plus size={18} /> Nueva Tarea</>}
+						{showAdd ? <><X size={18} /> Cancelar</> : <><Plus size={18} /> Nueva Tarea</>}
 					</button>
 				</div>
 
@@ -723,7 +725,7 @@ export const Tareas = () => {
 											onClick={() => startEditTask(t)}
 											style={{ color: "var(--accent-primary)" }}
 										>
-											Editar
+											<Edit size={16} /> Editar
 										</button>
 										<button
 											className="secondary"
