@@ -3,9 +3,9 @@
 - **Trazabilidad**: Al finalizar una tarea, SIEMPRE pregunta: "¿Deseas que actualice el CHANGELOG con estos cambios?" si no lo has hecho ya.
 - **Arquitectura**: Sigue fielmente el patrón de diseño basado en componentes en `src/app/components`.
 - **Verificación MANDATORIA**: Después de realizar cambios significativos o antes de dar por terminada una tarea, es OBLIGATORIO ejecutar:
-  1. `npm run build`: Para asegurar que no hay errores de TypeScript o compilación.
-  2. `npm run format`: Para mantener la consistencia del estilo.
-  3. `npm run lint`: Para verificar que no hay errores de calidad de código.
+  1. `npm run build`: Para asegurar que no hay errores de TypeScript o compilación tanto en **Backend** como en **Frontend**.
+  2. `npm run format`: Para mantener la consistencia del estilo mediante Biome.
+  3. `npm run lint`: Para verificar la calidad del código y ausencia de `any`.
 
 ## 📝 Gestión de Changelog (MANDATORIO)
 Cualquier cambio que se realice en el código DEBE ser documentado en el archivo `CHANGELOG.md` en la raíz del proyecto.
@@ -39,9 +39,9 @@ Cualquier cambio que se realice en el código DEBE ser documentado en el archivo
 - **Estándar**: Usamos **Biome** para mantener la calidad del código. NO usar Prettier.
 - **Verificación de Errores**: Es responsabilidad del modelo asegurar que el código es robusto.
 - **Comandos de Verificación (MANDATORIO ejecutar tras cambios)**: 
-  - `npm run build`: Verifica errores de sintaxis, tipado y compilación.
-  - `npm run format`: Aplica el formato oficial.
-  - `npm run lint`: Verifica reglas de calidad.
+  - `npm run build`: Verifica errores en ambos workspaces (backend/frontend).
+  - `npm run format`: Aplica el formato oficial con Biome.
+  - `npm run lint`: Verifica reglas de calidad y prohíbe el uso de `any`.
 
 ## 🚀 Gestión de Base de Datos y Seguridad
 Como Agente de IA, tienes **PROHIBIDO** ejecutar comandos que modifiquen la estructura de la base de datos de forma directa. Si una tarea requiere cambios estructurales, infórmalo al usuario para que ejecute:
