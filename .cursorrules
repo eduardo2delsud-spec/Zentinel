@@ -1,0 +1,57 @@
+## 🤖 Instrucciones para el Modelo
+- **Contexto**: Antes de iniciar cualquier tarea, lee el `CHANGELOG.md` para entender el estado actual y los cambios recientes.
+- **Trazabilidad**: Al finalizar una tarea, SIEMPRE pregunta: "¿Deseas que actualice el CHANGELOG con estos cambios?" si no lo has hecho ya.
+- **Arquitectura**: Sigue fielmente el patrón de diseño basado en componentes en `src/app/components`.
+- **Verificación MANDATORIA**: Después de realizar cambios significativos o antes de dar por terminada una tarea, es OBLIGATORIO ejecutar:
+  1. `npm run build`: Para asegurar que no hay errores de TypeScript o compilación.
+  2. `npm run format`: Para mantener la consistencia del estilo.
+  3. `npm run lint`: Para verificar que no hay errores de calidad de código.
+
+## 📝 Gestión de Changelog (MANDATORIO)
+Cualquier cambio que se realice en el código DEBE ser documentado en el archivo `CHANGELOG.md` en la raíz del proyecto.
+1.  **Inmediatez**: Actualiza el changelog inmediatamente después de realizar los cambios.
+2.  **Sección**: Todos los cambios deben ir bajo la sección `## [Unreleased]`.
+3.  **Categorías**: Clasifica los cambios en:
+    - `Added (Nuevo)`: Para nuevas funcionalidades.
+    - `Changed (Cambio)`: Para cambios en funcionalidades existentes.
+    - `Fixed (Corrección)`: Para corrección de errores (bugs).
+    - `Removed (Eliminado)`: Para funcionalidades eliminadas.
+4.  **Idioma**: Español.
+5.  **Fecha**: Los ítems deben terminar con la fecha del cambio entre corchetes, formato `[YYYY-MM-DD]` (ej: `... funcionalidad. [2026-03-16]`).
+
+## 💻 Estándares de TypeScript y Backend
+- **Tipado**: Estricto obligatorio. PROHIBIDO el uso de `any`.
+- **Imports**: Usar SIEMPRE Alias configurados en `tsconfig.json` (`@components`, `@shared`, `@core`, `@middlewares`). NO usar paths relativos (`../../../`).
+- **Naming**: 
+  - Carpetas de componentes: **PascalCase** (ej: `CashFlow`).
+  - Archivos de código: **camelCase** (ej: `cashFlow.service.ts`).
+  - Variables y funciones: **camelCase**.
+- **Respuestas HTTP**:
+  - Toda respuesta exitosa debe seguir el formato: `{ success: true, data: result }`.
+  - Los Controllers deben usar `try-catch` y delegar errores al middleware global vía `next(error)`.
+  - Uso de Errores: Emplear la clase utilitaria `AppError("Mensaje", status_code)` para errores controlados.
+- **Drizzle ORM Patterns**:
+  - **Soft Deletes**: NUNCA usar `.delete()` físico. Filtrar siempre mediante `isNull(table.deletedAt)`.
+  - **Transacciones**: Es OBLIGATORIO usar `db.transaction()` cuando se afecten múltiples tablas.
+  - **Auditoría**: Toda tabla nueva debe incluir `id`, `createdAt`, `updatedAt` y `deletedAt`.
+
+## 🛠️ Linter / Formatter / Build
+- **Estándar**: Usamos **Biome** para mantener la calidad del código. NO usar Prettier.
+- **Verificación de Errores**: Es responsabilidad del modelo asegurar que el código es robusto.
+- **Comandos de Verificación (MANDATORIO ejecutar tras cambios)**: 
+  - `npm run build`: Verifica errores de sintaxis, tipado y compilación.
+  - `npm run format`: Aplica el formato oficial.
+  - `npm run lint`: Verifica reglas de calidad.
+
+## 🚀 Gestión de Base de Datos y Seguridad
+Como Agente de IA, tienes **PROHIBIDO** ejecutar comandos que modifiquen la estructura de la base de datos de forma directa. Si una tarea requiere cambios estructurales, infórmalo al usuario para que ejecute:
+- **Local**: `npm run db:generate`, `npm run db:migrate` o `npm run db:push`.
+- **CRM**: `npm run crm:generate` o `npm run crm:push`.
+
+## ⛔ Comandos Prohibidos
+Tienes **ESTRICTAMENTE PROHIBIDO** ejecutar los siguientes comandos:
+1.  **Git**: `git push`, `git commit`, `git checkout`, etc. (Gestión exclusiva del dev).
+2.  **DB estructural**: Los comandos de generación y aplicación de migraciones mencionados arriba.
+
+---
+**REGLA DE ORO**: Si rompes algo, arréglalo antes de reportar. Mantén la elegancia del código y la integridad de los datos financieros.
