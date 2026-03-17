@@ -14,8 +14,8 @@ interface Task {
 	id: number;
 	name: string;
 	cron: string;
-	sourceId: number;
-	roleId: string;
+	sourceId: number | null;
+	roleId: string | null;
 	provider: string;
 	model: string;
 	discordWebhookUrl?: string | null;
@@ -47,6 +47,7 @@ class SchedulerService {
 			console.log(`Running scheduled task: ${task.name}`);
 			try {
 				// 1. Get source content
+				if (!task.sourceId) throw new Error("Source is required");
 				const source = await db
 					.select()
 					.from(sources)
@@ -67,6 +68,7 @@ class SchedulerService {
 
 				// 3. Generate report
 				const service = AIServiceFactory.getService(task.provider);
+				if (!task.roleId) throw new Error("Role is required");
 				const systemPrompt = await promptManager.getPrompt(task.roleId);
 
 				const report = await service.generateReport({
@@ -82,7 +84,7 @@ class SchedulerService {
 						report,
 						`📅 Reporte Automático: ${task.name}`,
 						6514417, // Indigo color in decimal
-						task.discordMentionId,
+						task.discordMentionId ?? undefined,
 					);
 				}
 
