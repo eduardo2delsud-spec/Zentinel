@@ -1,8 +1,7 @@
 import axios from "axios";
 import { ChevronRight, File, Folder, Home, Search } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-
-const API_BASE = "http://localhost:3001/api";
+import { API_BASE } from "../config";
 
 interface FileItem {
 	name: string;

@@ -16,8 +16,7 @@ import {
 import { useCallback, useEffect, useState } from "react";
 import { io } from "socket.io-client";
 import { RichMarkdownRenderer } from "../components/RichMarkdownRenderer";
-
-const API_BASE = "http://localhost:3001/api";
+import { API_BASE } from "../config";
 
 interface Source {
 	id: number;
@@ -96,7 +95,8 @@ const Informes = () => {
 	const [selectedMention, setSelectedMention] = useState("");
 
 	useEffect(() => {
-		const newSocket = io("http://localhost:3001");
+		const socketUrl = API_BASE.replace(/\/api$/, "");
+		const newSocket = io(socketUrl);
 
 		newSocket.on("connect", () => {
 			console.log("Connected to WebSocket:", newSocket.id);

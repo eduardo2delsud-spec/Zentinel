@@ -8,6 +8,7 @@ services:
       - "3666:3666"
     volumes:
       - ./apps/backend/zentinel.db:/app/apps/backend/zentinel.db
+      - C:\Users\edu\Desktop:/root
     environment:
       - PORT=3666
       - NODE_ENV=production
@@ -19,7 +20,7 @@ services:
       dockerfile: apps/frontend/Dockerfile
     container_name: zentinel-frontend
     ports:
-      - "5173:66"
+      - "8888:80"
     depends_on:
       - zentinel-backend
     restart: always

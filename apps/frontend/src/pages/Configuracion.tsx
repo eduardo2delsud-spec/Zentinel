@@ -13,8 +13,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { DiscordSettings } from "./Sections";
-
-const API_BASE = "http://localhost:3001/api";
+import { API_BASE } from "../config";
 
 interface Prompt {
 	id: string;

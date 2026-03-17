@@ -12,8 +12,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import FileBrowser from "../components/FileBrowser";
-
-const API_BASE = "http://localhost:3001/api";
+import { API_BASE } from "../config";
 
 interface Source {
 	id: number;
@@ -133,8 +132,8 @@ export const Proyecto = () => {
 	}, [loadProjects]);
 
 	const addProject = async () => {
-		if (!newName || !newRootPath || !newChangelogPath)
-			return alert("Completa todos los campos (Changelog es obligatorio)");
+		if (!newName || !newChangelogPath)
+			return alert("Completa el nombre y el archivo Changelog (obligatorios)");
 		try {
 			if (editingProjectId) {
 				await axios.put(`${API_BASE}/projects/${editingProjectId}`, {
