@@ -5,11 +5,11 @@ services:
       dockerfile: apps/backend/Dockerfile
     container_name: zentinel-backend
     ports:
-      - "3001:3001"
+      - "3666:3666"
     volumes:
       - ./apps/backend/zentinel.db:/app/apps/backend/zentinel.db
     environment:
-      - PORT=3001
+      - PORT=3666
       - NODE_ENV=production
     restart: always
 
@@ -19,7 +19,7 @@ services:
       dockerfile: apps/frontend/Dockerfile
     container_name: zentinel-frontend
     ports:
-      - "5173:80"
+      - "5173:66"
     depends_on:
       - zentinel-backend
     restart: always
