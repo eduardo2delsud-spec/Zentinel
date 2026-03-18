@@ -385,7 +385,7 @@ app.post("/api/reports", async (req, res) => {
 			provider: provider || "manual",
 			model: model || "manual",
 			role: role || "N/A",
-			sourceId: sourceId ? Number(sourceId) : null,
+			sourceId: sourceId && !isNaN(Number(sourceId)) ? Number(sourceId) : null,
 			tokensUsed: 0,
 			sentimentScore: 100,
 		});
@@ -563,7 +563,7 @@ ${doubts || "N/A"}
 			role,
 			tokensUsed: Math.floor(tokensUsed),
 			sentimentScore,
-			sourceId: sourceId ? Number(sourceId) : null,
+			sourceId: sourceId && !isNaN(Number(sourceId)) ? Number(sourceId) : null,
 		});
 
 		res.json({ report: reportContent });
