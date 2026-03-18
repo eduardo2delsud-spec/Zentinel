@@ -10,6 +10,7 @@ export const reports = sqliteTable("reports", {
 	role: text("role").notNull(),
 	tokensUsed: integer("tokens_used").default(0),
 	sentimentScore: integer("sentiment_score").default(0), // 0-100 (humor/salud)
+	sourceId: integer("source_id").references(() => sources.id),
 	createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
 		() => new Date(),
 	),

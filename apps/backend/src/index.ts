@@ -107,7 +107,7 @@ app.get("/api/models", async (req, res) => {
 	}
 });
 
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, gte, lte } from "drizzle-orm";
 import { db } from "./db/index.js";
 import {
 	aiModels,
@@ -345,12 +345,54 @@ app.put("/api/projects/:id", async (req, res) => {
 });
 
 // History (Reports) Endpoints
-app.get("/api/reports", async (_req, res) => {
-	const allReports = await db
-		.select()
-		.from(reports)
-		.orderBy(desc(reports.createdAt));
+app.get("/api/reports", async (req, res) => {
+	const { from, to, mode, sourceId } = req.query;
+
+	const conditions = [];
+	if (from) conditions.push(gte(reports.createdAt, new Date(from as string)));
+	if (to) {
+		const toDate = new Date(to as string);
+		toDate.setHours(23, 59, 59, 999);
+		conditions.push(lte(reports.createdAt, toDate));
+	}
+	if (mode) {
+		if (mode === "manual") {
+			conditions.push(eq(reports.provider, "manual"));
+		} else if (mode === "ia") {
+			// biome-ignore lint/nursery/noNot: <explanation>
+			conditions.push(eq(reports.provider, "ia")); // We'll use 'ia' or not 'manual'
+		}
+	}
+	if (sourceId) conditions.push(eq(reports.sourceId, Number(sourceId)));
+
+	let query = db.select().from(reports);
+	if (conditions.length > 0) {
+		// @ts-ignore
+		query = query.where(and(...conditions));
+	}
+
+	const allReports = await query.orderBy(desc(reports.createdAt));
 	res.json(allReports);
+});
+
+app.post("/api/reports", async (req, res) => {
+	const { title, content, rawInput, provider, model, role, sourceId } = req.body;
+	try {
+		await db.insert(reports).values({
+			title,
+			content,
+			rawInput,
+			provider: provider || "manual",
+			model: model || "manual",
+			role: role || "N/A",
+			sourceId: sourceId ? Number(sourceId) : null,
+			tokensUsed: 0,
+			sentimentScore: 100,
+		});
+		res.json({ success: true });
+	} catch (error) {
+		res.status(500).json({ error: (error as Error).message });
+	}
 });
 
 app.delete("/api/reports/:id", async (req, res) => {
@@ -455,6 +497,7 @@ app.post("/api/generate", async (req, res) => {
 		blockers,
 		doubts,
 		projectId,
+		sourceId,
 	} = req.body;
 	try {
 		const service = AIServiceFactory.getService(provider);
@@ -520,6 +563,7 @@ ${doubts || "N/A"}
 			role,
 			tokensUsed: Math.floor(tokensUsed),
 			sentimentScore,
+			sourceId: sourceId ? Number(sourceId) : null,
 		});
 
 		res.json({ report: reportContent });

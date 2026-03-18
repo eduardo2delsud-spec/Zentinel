@@ -110,6 +110,11 @@ const Informes = () => {
 	const [editingContent, setEditingContent] = useState("");
 	const [reportDate, setReportDate] = useState(new Date().toISOString().split("T")[0]);
 
+	const [historyFilterMode, setHistoryFilterMode] = useState<"all" | "ia" | "manual">("all");
+	const [historyFilterFrom, setHistoryFilterFrom] = useState("");
+	const [historyFilterTo, setHistoryFilterTo] = useState("");
+	const [historyFilterSource, setHistoryFilterSource] = useState("");
+
 	const [globalWebhooks, setGlobalWebhooks] = useState<DiscordWebhook[]>([]);
 	const [globalMentions, setGlobalMentions] = useState<DiscordMention[]>([]);
 	const [selectedWebhook, setSelectedWebhook] = useState("");
@@ -179,19 +184,28 @@ const Informes = () => {
 
 	const loadReports = useCallback(async () => {
 		try {
-			const { data } = await axios.get(`${API_BASE}/reports`);
+			const queryParams = new URLSearchParams();
+			if (historyFilterMode !== "all") queryParams.append("mode", historyFilterMode);
+			if (historyFilterFrom) queryParams.append("from", historyFilterFrom);
+			if (historyFilterTo) queryParams.append("to", historyFilterTo);
+			if (historyFilterSource) queryParams.append("sourceId", historyFilterSource);
+
+			const { data } = await axios.get(`${API_BASE}/reports?${queryParams.toString()}`);
 			setReportsArr(data);
 		} catch {
 			console.error("Error loading reports");
 		}
-	}, []);
+	}, [historyFilterMode, historyFilterFrom, historyFilterTo, historyFilterSource]);
+
+	useEffect(() => {
+		loadReports();
+	}, [loadReports]);
 
 	useEffect(() => {
 		(async () => {
 			await fetchData();
-			await loadReports();
 		})();
-	}, [fetchData, loadReports]);
+	}, [fetchData]);
 
 	// Auto-load project's changelog when selected
 	useEffect(() => {
@@ -233,9 +247,11 @@ const Informes = () => {
 				blockers,
 				doubts,
 				projectId: selectedProjectId,
+				sourceId: selectedSourceId,
 			});
 			setReport(data.report);
 			setProgress("");
+			await loadReports();
 		} catch {
 			alert("Error generando el informe");
 			setProgress("");
@@ -243,7 +259,7 @@ const Informes = () => {
 		setLoading(false);
 	};
 
-	const generateManualReport = () => {
+	const generateManualReport = async () => {
 		if (!changelog.trim()) {
 			return alert("Por favor, ingresa el changelog técnico.");
 		}
@@ -306,6 +322,18 @@ const Informes = () => {
 			rendered = rendered.replace(/\{details\}/g, detailsStr.trim() || 'N/A');
 
 			setReport(rendered);
+
+			// SAVE MANUAL REPORT
+			await axios.post(`${API_BASE}/reports`, {
+				title: `Reporte Manual - ${reportDate}`,
+				content: rendered,
+				rawInput: changelog,
+				provider: "manual",
+				model: "manual",
+				role: "N/A",
+				sourceId: selectedSourceId ? Number(selectedSourceId) : null,
+			});
+			await loadReports();
 		} catch (err) {
 			console.error(err);
 			alert("Error al generar reporte manual.");
@@ -839,6 +867,65 @@ const Informes = () => {
 						<span className="text-muted" style={{ fontSize: "0.85rem" }}>
 							{reportsArr.length} informe(s)
 						</span>
+					</div>
+
+					{/* FILTERS */}
+					<div
+						style={{
+							display: "flex",
+							gap: "1rem",
+							marginBottom: "1.5rem",
+							padding: "1rem",
+							background: "var(--bg-deep)",
+							borderRadius: "12px",
+							flexWrap: "wrap",
+						}}
+					>
+						<div style={{ flex: 1, minWidth: "120px" }}>
+							<label style={{ fontSize: "0.75rem", display: "block", marginBottom: "0.3rem" }}>MODO</label>
+							<select
+								value={historyFilterMode}
+								onChange={(e) => setHistoryFilterMode(e.target.value as "all" | "ia" | "manual")}
+								style={{ fontSize: "0.85rem" }}
+							>
+								<option value="all">Todos</option>
+								<option value="ia">IA</option>
+								<option value="manual">Manual</option>
+							</select>
+						</div>
+						<div style={{ flex: 1, minWidth: "120px" }}>
+							<label style={{ fontSize: "0.75rem", display: "block", marginBottom: "0.3rem" }}>DESDE</label>
+							<input
+								type="date"
+								value={historyFilterFrom}
+								onChange={(e) => setHistoryFilterFrom(e.target.value)}
+								style={{ fontSize: "0.85rem" }}
+							/>
+						</div>
+						<div style={{ flex: 1, minWidth: "120px" }}>
+							<label style={{ fontSize: "0.75rem", display: "block", marginBottom: "0.3rem" }}>HASTA</label>
+							<input
+								type="date"
+								value={historyFilterTo}
+								onChange={(e) => setHistoryFilterTo(e.target.value)}
+								style={{ fontSize: "0.85rem" }}
+							/>
+						</div>
+						<div style={{ flex: 1, minWidth: "200px" }}>
+							<label style={{ fontSize: "0.75rem", display: "block", marginBottom: "0.3rem" }}>FUENTE (CHANGELOG)</label>
+							<select
+								value={historyFilterSource}
+								onChange={(e) => setHistoryFilterSource(e.target.value)}
+								style={{ fontSize: "0.85rem" }}
+							>
+								<option value="">Cualquier Fuente</option>
+								{sourcesArr.map((s) => (
+									<option key={s.id} value={s.id}>
+										📄 {s.name}
+									</option>
+								))}
+							</select>
+						</div>
 					</div>
 
 					<div
