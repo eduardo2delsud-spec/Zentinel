@@ -6,6 +6,7 @@ import { scheduledTasks, sources } from "../db/schema.js";
 import { AIServiceFactory } from "./ai/ai.factory.js";
 import { PromptManager } from "./ai/prompt.manager.js";
 import { DiscordWebhookManager } from "./discord/webhook.manager.js";
+import { resolvePath } from "../utils/pathResolver.js";
 
 const promptManager = new PromptManager();
 const discordManager = new DiscordWebhookManager();
@@ -55,7 +56,7 @@ class SchedulerService {
 					.limit(1);
 				if (source.length === 0) throw new Error("Source not found");
 
-				const changelogText = await fs.readFile(source[0].path, "utf-8");
+				const changelogText = await fs.readFile(resolvePath(source[0].path), "utf-8");
 
 				// 2. Get RAG context if projectId is set
 				let projectContext = "";

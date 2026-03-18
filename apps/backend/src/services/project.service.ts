@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import ignore from "ignore";
 import { db } from "../db/index.js";
 import { projectFiles, projects, sources } from "../db/schema.js";
+import { resolvePath } from "../utils/pathResolver.js";
 
 const ALLOWED_EXTENSIONS = [
 	".ts",
@@ -78,7 +79,7 @@ export class ProjectService {
 
 		// 4. Indexar archivos en segundo plano (simulado RAG simple)
 		// No esperamos a que termine para responder al cliente
-		ProjectService.indexProjectFiles(project.id, rootPath).catch((err) =>
+		ProjectService.indexProjectFiles(project.id, resolvePath(rootPath)).catch((err) =>
 			console.error("Error indexing project files:", err),
 		);
 
@@ -110,7 +111,7 @@ export class ProjectService {
 
 		// 3. Si la ruta raíz cambió, re-indexar archivos
 		if (oldProject.rootPath !== rootPath) {
-			ProjectService.indexProjectFiles(id, rootPath).catch((err) =>
+			ProjectService.indexProjectFiles(id, resolvePath(rootPath)).catch((err) =>
 				console.error("Error re-indexing project files:", err),
 			);
 		}

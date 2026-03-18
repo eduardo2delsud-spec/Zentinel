@@ -12,6 +12,8 @@ import { PromptManager } from "./services/ai/prompt.manager.js";
 import { DiscordWebhookManager } from "./services/discord/webhook.manager.js";
 import { ProjectService } from "./services/project.service.js";
 import { schedulerService } from "./services/scheduler.service.js";
+import { resolvePath } from "./utils/pathResolver.js";
+
 
 dotenv.config();
 
@@ -249,7 +251,8 @@ app.get("/api/sources/:id/content", async (req, res) => {
 			.limit(1);
 		if (source.length === 0)
 			return res.status(404).json({ error: "Source not found" });
-		const content = await fs.readFile(source[0].path, "utf-8");
+		const content = await fs.readFile(resolvePath(source[0].path), "utf-8");
+
 		res.json({ content });
 	} catch (error) {
 		const errorMessage =
@@ -268,7 +271,9 @@ app.get("/api/fs/ls", async (req, res) => {
 	const targetDir = (dir as string) || os.homedir();
 
 	try {
-		const files = await fs.readdir(targetDir, { withFileTypes: true });
+		const resolvedDir = resolvePath(targetDir);
+		const files = await fs.readdir(resolvedDir, { withFileTypes: true });
+
 		const result = files
 			.filter((f) => !f.name.startsWith("."))
 			.map((f) => ({
@@ -483,14 +488,21 @@ ${doubts || "N/A"}
 `.trim();
 
 		emitProgress("Preparando datos y contexto...");
-		const reportContent = await service.generateReport({
-			text: fullContext,
-			model,
-			systemPrompt: `${systemPrompt}\n\nCONTEXTO DEL PROYECTO (RAG):\n${projectContext}\n\nIMPORTANTE: Genera un informe profesional siguiendo estrictamente este formato:
+		const finalSystemPrompt = `${systemPrompt}\n\nCONTEXTO DEL PROYECTO (RAG):\n${projectContext}\n\nIMPORTANTE: Genera un informe profesional siguiendo estrictamente este formato:
 - Usa emojis para las secciones.
 - Mejora la redacción técnica de lo ingresado.
 - Mantén la estructura de: AYER, HOY/PENDIENTES, BLOQUEOS y DUDAS.
-- Si una sección es "N/A", menciónala brevemente como "Sin novedades" o similar de forma elegante.`,
+- Si una sección es "N/A", menciónala brevemente como "Sin novedades" o similar de forma elegante.`;
+
+		console.log("--- FULL PROMPT SENT TO AI ---");
+		console.log("SYSTEM PROMPT:\n", finalSystemPrompt);
+		console.log("USER CONTENT:\n", fullContext);
+		console.log("------------------------------");
+
+		const reportContent = await service.generateReport({
+			text: fullContext,
+			model,
+			systemPrompt: finalSystemPrompt,
 			onProgress: (msg) => emitProgress(msg),
 		});
 
