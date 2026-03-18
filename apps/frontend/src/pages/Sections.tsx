@@ -670,12 +670,25 @@ export const Tareas = () => {
 							</select>
 						</div>
 
+						<div className="form-group">
+							<label>Proveedor</label>
+							<select
+								value={taskProvider}
+								onChange={(e) => setTaskProvider(e.target.value)}
+							>
+								<option value="ollama">Ollama</option>
+								<option value="openrouter">OpenRouter</option>
+								<option value="manual">Manual (Changelog)</option>
+							</select>
+						</div>
+
 						<div className="grid-cols-2">
 							<div className="form-group">
 								<label>Rol de IA</label>
 								<select
 									value={taskRoleId}
 									onChange={(e) => setTaskRoleId(e.target.value)}
+									disabled={taskProvider === "manual"}
 								>
 									{roles.map((r) => (
 										<option key={r.id} value={r.id}>
@@ -685,40 +698,30 @@ export const Tareas = () => {
 								</select>
 							</div>
 							<div className="form-group">
-								<label>Proveedor</label>
+								<label>Modelo</label>
 								<select
-									value={taskProvider}
-									onChange={(e) => setTaskProvider(e.target.value)}
+									value={taskModel}
+									onChange={(e) => setTaskModel(e.target.value)}
+									disabled={taskProvider === "manual"}
 								>
-									<option value="ollama">Ollama</option>
-									<option value="openrouter">OpenRouter</option>
-								</select>
-							</div>
-						</div>
-
-						<div className="form-group">
-							<label>Modelo</label>
-							<select
-								value={taskModel}
-								onChange={(e) => setTaskModel(e.target.value)}
-							>
-								<optgroup label="Modelos Guardados">
-									{taskSavedModels
-										.filter((m) => m.provider === taskProvider)
-										.map((m) => (
-											<option key={m.id} value={m.modelId}>
-												⭐ {m.displayName} ({m.modelId})
+									<optgroup label="Modelos Guardados">
+										{taskSavedModels
+											.filter((m) => m.provider === taskProvider)
+											.map((m) => (
+												<option key={m.id} value={m.modelId}>
+													⭐ {m.displayName} ({m.modelId})
+												</option>
+											))}
+									</optgroup>
+									<optgroup label="Modelos Disponibles">
+										{taskModels.map((m) => (
+											<option key={m} value={m}>
+												{m}
 											</option>
 										))}
-								</optgroup>
-								<optgroup label="Modelos Disponibles">
-									{taskModels.map((m) => (
-										<option key={m} value={m}>
-											{m}
-										</option>
-									))}
-								</optgroup>
-							</select>
+									</optgroup>
+								</select>
+							</div>
 						</div>
 
 						<div className="form-group">

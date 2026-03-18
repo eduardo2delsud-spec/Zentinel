@@ -500,23 +500,29 @@ app.post("/api/generate", async (req, res) => {
 		sourceId,
 	} = req.body;
 	try {
-		const service = AIServiceFactory.getService(provider);
-		const systemPrompt = await promptManager.getPrompt(role);
+		let reportContent = "";
+		if (provider === "manual") {
+			const { ReportService } = await import("./services/report.service.js");
+			const todayStr = new Date().toISOString().split("T")[0];
+			reportContent = ReportService.generateManualReport(text, todayStr);
+		} else {
+			const service = AIServiceFactory.getService(provider);
+			const systemPrompt = await promptManager.getPrompt(role);
 
-		let projectContext = "";
-		if (projectId) {
-			projectContext = await ProjectService.getProjectContext(
-				Number(projectId),
-			);
-		}
-
-		const emitProgress = (message: string) => {
-			if (socketId && io.to(socketId)) {
-				io.to(socketId).emit("generation_progress", { message });
+			let projectContext = "";
+			if (projectId) {
+				projectContext = await ProjectService.getProjectContext(
+					Number(projectId),
+				);
 			}
-		};
 
-		const fullContext = `
+			const emitProgress = (message: string) => {
+				if (socketId && io.to(socketId)) {
+					io.to(socketId).emit("generation_progress", { message });
+				}
+			};
+
+			const fullContext = `
 ⏪ AYER (LOG TÉCNICO):
 ${text}
 
@@ -530,24 +536,25 @@ ${blockers || "N/A"}
 ${doubts || "N/A"}
 `.trim();
 
-		emitProgress("Preparando datos y contexto...");
-		const finalSystemPrompt = `${systemPrompt}\n\nCONTEXTO DEL PROYECTO (RAG):\n${projectContext}\n\nIMPORTANTE: Genera un informe profesional siguiendo estrictamente este formato:
+			emitProgress("Preparando datos y contexto...");
+			const finalSystemPrompt = `${systemPrompt}\n\nCONTEXTO DEL PROYECTO (RAG):\n${projectContext}\n\nIMPORTANTE: Genera un informe profesional siguiendo estrictamente este formato:
 - Usa emojis para las secciones.
 - Mejora la redacción técnica de lo ingresado.
 - Mantén la estructura de: AYER, HOY/PENDIENTES, BLOQUEOS y DUDAS.
 - Si una sección es "N/A", menciónala brevemente como "Sin novedades" o similar de forma elegante.`;
 
-		console.log("--- FULL PROMPT SENT TO AI ---");
-		console.log("SYSTEM PROMPT:\n", finalSystemPrompt);
-		console.log("USER CONTENT:\n", fullContext);
-		console.log("------------------------------");
+			console.log("--- FULL PROMPT SENT TO AI ---");
+			console.log("SYSTEM PROMPT:\n", finalSystemPrompt);
+			console.log("USER CONTENT:\n", fullContext);
+			console.log("------------------------------");
 
-		const reportContent = await service.generateReport({
-			text: fullContext,
-			model,
-			systemPrompt: finalSystemPrompt,
-			onProgress: (msg) => emitProgress(msg),
-		});
+			reportContent = await service.generateReport({
+				text: fullContext,
+				model,
+				systemPrompt: finalSystemPrompt,
+				onProgress: (msg) => emitProgress(msg),
+			});
+		}
 
 		// Simulamos conteo de tokens y puntaje de humor para el dashboard
 		const tokensUsed = text.length / 4 + reportContent.length / 4;
@@ -555,12 +562,12 @@ ${doubts || "N/A"}
 
 		// Persist to DB
 		await db.insert(reports).values({
-			title: `Changelog - ${new Date().toLocaleDateString()}`,
+			title: `Reporte ${provider === "manual" ? "Manual" : "IA"} - ${new Date().toLocaleDateString()}`,
 			content: reportContent,
 			rawInput: text,
 			provider,
-			model,
-			role,
+			model: model || "manual",
+			role: role || "N/A",
 			tokensUsed: Math.floor(tokensUsed),
 			sentimentScore,
 			sourceId: sourceId && !isNaN(Number(sourceId)) ? Number(sourceId) : null,

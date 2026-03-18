@@ -68,15 +68,22 @@ class SchedulerService {
 				}
 
 				// 3. Generate report
-				const service = AIServiceFactory.getService(task.provider);
-				if (!task.roleId) throw new Error("Role is required");
-				const systemPrompt = await promptManager.getPrompt(task.roleId);
+				let report = "";
+				if (task.provider === "manual") {
+					const { ReportService } = await import("./report.service.js");
+					const todayStr = new Date().toISOString().split("T")[0];
+					report = ReportService.generateManualReport(changelogText, todayStr);
+				} else {
+					const service = AIServiceFactory.getService(task.provider);
+					if (!task.roleId) throw new Error("Role is required");
+					const systemPrompt = await promptManager.getPrompt(task.roleId);
 
-				const report = await service.generateReport({
-					text: changelogText,
-					model: task.model,
-					systemPrompt: `${systemPrompt}\n\nCONTEXTO DEL PROYECTO (RAG):\n${projectContext}\n\nIMPORTANTE: Genera un reporte profesional técnico basado en el contexto de ayer. Mejora la redacción, usa emojis y estructura el contenido de forma clara.`,
-				});
+					report = await service.generateReport({
+						text: changelogText,
+						model: task.model,
+						systemPrompt: `${systemPrompt}\n\nCONTEXTO DEL PROYECTO (RAG):\n${projectContext}\n\nIMPORTANTE: Genera un reporte profesional técnico basado en el contexto de ayer. Mejora la redacción, usa emojis y estructura el contenido de forma clara.`,
+					});
+				}
 
 				// 4. Send to Discord if configured
 				if (task.discordWebhookUrl) {

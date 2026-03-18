@@ -25,12 +25,14 @@ export class DiscordWebhookManager {
 					embeds: [
 						{
 							title: currentTitle,
-							description: chunks[i],
-							color,
+							description: chunks[i] || "Sin contenido",
+							color: color ? Number(color) : 3447003,
 							timestamp: new Date().toISOString(),
 						},
 					],
 				};
+				console.log(`--- SENDING DISCORD PAYLOAD (Chunk ${i + 1}/${chunks.length}) ---`);
+				console.log(JSON.stringify(payload, null, 2));
 				await axios.post(webhookUrl, payload);
 			}
 		} catch (error: any) {
