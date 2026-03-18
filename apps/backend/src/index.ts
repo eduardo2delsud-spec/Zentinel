@@ -503,7 +503,12 @@ app.post("/api/generate", async (req, res) => {
 		let reportContent = "";
 		if (provider === "manual") {
 			const { ReportService } = await import("./services/report.service.js");
-			const todayStr = new Date().toISOString().split("T")[0];
+			const todayStr = new Intl.DateTimeFormat("en-CA", {
+				timeZone: "America/Argentina/Buenos_Aires",
+				year: "numeric",
+				month: "2-digit",
+				day: "2-digit",
+			}).format(new Date());
 			reportContent = ReportService.generateManualReport(text, todayStr);
 		} else {
 			const service = AIServiceFactory.getService(provider);

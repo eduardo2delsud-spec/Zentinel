@@ -44,63 +44,77 @@ class SchedulerService {
 			this.jobs.get(task.id)?.stop();
 		}
 
-		const job = cron.schedule(task.cron, async () => {
-			console.log(`Running scheduled task: ${task.name}`);
-			try {
-				// 1. Get source content
-				if (!task.sourceId) throw new Error("Source is required");
-				const source = await db
-					.select()
-					.from(sources)
-					.where(eq(sources.id, task.sourceId))
-					.limit(1);
-				if (source.length === 0) throw new Error("Source not found");
+		const job = cron.schedule(
+			task.cron,
+			async () => {
+				console.log(`Running scheduled task: ${task.name}`);
+				try {
+					// 1. Get source content
+					if (!task.sourceId) throw new Error("Source is required");
+					const source = await db
+						.select()
+						.from(sources)
+						.where(eq(sources.id, task.sourceId))
+						.limit(1);
+					if (source.length === 0) throw new Error("Source not found");
 
-				const changelogText = await fs.readFile(resolvePath(source[0].path), "utf-8");
-
-				// 2. Get RAG context if projectId is set
-				let projectContext = "";
-				if (task.projectId) {
-					const { ProjectService } = await import("./project.service.js");
-					projectContext = await ProjectService.getProjectContext(
-						Number(task.projectId),
+					const changelogText = await fs.readFile(
+						resolvePath(source[0].path),
+						"utf-8",
 					);
+
+					// 2. Get RAG context if projectId is set
+					let projectContext = "";
+					if (task.projectId) {
+						const { ProjectService } = await import("./project.service.js");
+						projectContext = await ProjectService.getProjectContext(
+							Number(task.projectId),
+						);
+					}
+
+					// 3. Generate report
+					let report = "";
+					if (task.provider === "manual") {
+						const { ReportService } = await import("./report.service.js");
+						// Get today's date in ART (Argentina) timezone
+						const todayStr = new Intl.DateTimeFormat("en-CA", {
+							timeZone: "America/Argentina/Buenos_Aires",
+							year: "numeric",
+							month: "2-digit",
+							day: "2-digit",
+						}).format(new Date());
+
+						report = ReportService.generateManualReport(changelogText, todayStr);
+					} else {
+						const service = AIServiceFactory.getService(task.provider);
+						if (!task.roleId) throw new Error("Role is required");
+						const systemPrompt = await promptManager.getPrompt(task.roleId);
+
+						report = await service.generateReport({
+							text: changelogText,
+							model: task.model,
+							systemPrompt: `${systemPrompt}\n\nCONTEXTO DEL PROYECTO (RAG):\n${projectContext}\n\nIMPORTANTE: Genera un reporte profesional técnico basado en el contexto de ayer. Mejora la redacción, usa emojis y estructura el contenido de forma clara.`,
+						});
+					}
+
+					// 4. Send to Discord if configured
+					if (task.discordWebhookUrl) {
+						await discordManager.sendReport(
+							task.discordWebhookUrl,
+							report,
+							`📅 Reporte Automático: ${task.name}`,
+							6514417, // Indigo color in decimal
+							task.discordMentionId ?? undefined,
+						);
+					}
+
+					console.log(`Task ${task.name} completed successfully.`);
+				} catch (error) {
+					console.error(`Error in scheduled task ${task.name}:`, error);
 				}
-
-				// 3. Generate report
-				let report = "";
-				if (task.provider === "manual") {
-					const { ReportService } = await import("./report.service.js");
-					const todayStr = new Date().toISOString().split("T")[0];
-					report = ReportService.generateManualReport(changelogText, todayStr);
-				} else {
-					const service = AIServiceFactory.getService(task.provider);
-					if (!task.roleId) throw new Error("Role is required");
-					const systemPrompt = await promptManager.getPrompt(task.roleId);
-
-					report = await service.generateReport({
-						text: changelogText,
-						model: task.model,
-						systemPrompt: `${systemPrompt}\n\nCONTEXTO DEL PROYECTO (RAG):\n${projectContext}\n\nIMPORTANTE: Genera un reporte profesional técnico basado en el contexto de ayer. Mejora la redacción, usa emojis y estructura el contenido de forma clara.`,
-					});
-				}
-
-				// 4. Send to Discord if configured
-				if (task.discordWebhookUrl) {
-					await discordManager.sendReport(
-						task.discordWebhookUrl,
-						report,
-						`📅 Reporte Automático: ${task.name}`,
-						6514417, // Indigo color in decimal
-						task.discordMentionId ?? undefined,
-					);
-				}
-
-				console.log(`Task ${task.name} completed successfully.`);
-			} catch (error) {
-				console.error(`Error in scheduled task ${task.name}:`, error);
-			}
-		});
+			},
+			{ timezone: "America/Argentina/Buenos_Aires" },
+		);
 
 		this.jobs.set(task.id, job);
 	}
