@@ -222,6 +222,83 @@ const Informes = () => {
 		setLoading(false);
 	};
 
+	const generateManualReport = () => {
+		if (!changelog.trim()) {
+			return alert("Por favor, ingresa el changelog técnico.");
+		}
+
+		setLoading(true);
+		try {
+			const d = new Date();
+			const yyyy = d.getFullYear();
+			const mm = String(d.getMonth() + 1).padStart(2, "0");
+			const dd = String(d.getDate()).padStart(2, "0");
+			const todayStr = `${yyyy}-${mm}-${dd}`;
+
+			const lines = changelog.split("\n");
+			let currentTitle = "";
+			let blockLines: string[] = [];
+			const todayBlocks: { title: string; lines: string[] }[] = [];
+
+			for (let i = 0; i < lines.length; i++) {
+				const line = lines[i];
+				if (line.trim().startsWith("- **") || line.trim().startsWith("- ") || line.trim().startsWith("### ")) {
+					if (currentTitle && (blockLines.some((l) => l.includes(`[${todayStr}]`)) || currentTitle.includes(`[${todayStr}]`))) {
+						todayBlocks.push({ title: currentTitle, lines: blockLines });
+					}
+					currentTitle = line;
+					blockLines = [];
+				} else if (line.trim().startsWith("*") || line.trim().startsWith("-")) {
+					blockLines.push(line);
+				} else if (line.trim()) {
+					blockLines.push(line);
+				}
+			}
+			if (currentTitle && (blockLines.some((l) => l.includes(`[${todayStr}]`)) || currentTitle.includes(`[${todayStr}]`))) {
+				todayBlocks.push({ title: currentTitle, lines: blockLines });
+			}
+
+			if (todayBlocks.length === 0) {
+				alert(`No se encontraron registros en el changelog para la fecha [${todayStr}].`);
+				setLoading(false);
+				return;
+			}
+
+			let manualOutput = `## 📝 Reporte Diario (${todayStr})\n\n`;
+
+			if (today.trim()) {
+				manualOutput += `**Planes para hoy / pendientes:**\n${today}\n\n`;
+			}
+			if (blockers.trim()) {
+				manualOutput += `**Bloqueos:**\n${blockers}\n\n`;
+			}
+			if (doubts.trim()) {
+				manualOutput += `**Dudas:**\n${doubts}\n\n`;
+			}
+
+			manualOutput += `### Títulos de Hoy\n`;
+			for (const block of todayBlocks) {
+				const match = block.title.match(/-\s*\*\*(.*?)\*\*/);
+				const titleText = match ? match[1] : block.title.replace(/^- /, "");
+				manualOutput += `- ${titleText}\n`;
+			}
+
+			manualOutput += `\n### Detalle de actividades:\n`;
+			for (const block of todayBlocks) {
+				manualOutput += `${block.title}\n`;
+				for (const l of block.lines) {
+					manualOutput += `${l}\n`;
+				}
+			}
+
+			setReport(manualOutput);
+		} catch (err) {
+			console.error(err);
+			alert("Error al generar reporte manual.");
+		}
+		setLoading(false);
+	};
+
 	const downloadReport = () => {
 		if (!report) return;
 		const element = document.createElement("a");
@@ -583,23 +660,35 @@ const Informes = () => {
 							</div>
 						</div>
 
-						<button
-							type="button"
-							onClick={generateReport}
-							disabled={loading}
-							style={{ width: "100%", marginTop: "1.5rem" }}
-						>
-							{loading ? (
-								<div className="flex-center gap-1">
-									<Loader2 size={18} className="animate-spin" />
-									<span>{progress || "Procesando..."}</span>
-								</div>
-							) : (
-								<>
-									<Sparkles size={18} /> Generar Reporte Mágico
-								</>
-							)}
-						</button>
+						<div style={{ display: "flex", gap: "1rem", marginTop: "1.5rem" }}>
+							<button
+								type="button"
+								onClick={generateReport}
+								disabled={loading}
+								style={{ flex: 1 }}
+							>
+								{loading ? (
+									<div className="flex-center gap-1">
+										<Loader2 size={18} className="animate-spin" />
+										<span>{progress || "IA..."}</span>
+									</div>
+								) : (
+									<>
+										<Sparkles size={18} /> Generar IA
+									</>
+								)}
+							</button>
+
+							<button
+								type="button"
+								onClick={generateManualReport}
+								disabled={loading}
+								className="secondary"
+								style={{ flex: 1 }}
+							>
+								<FileText size={18} /> Generar Manual
+							</button>
+						</div>
 					</section>
 
 					<section className="glass-card">
