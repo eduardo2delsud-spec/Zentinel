@@ -2,9 +2,22 @@
 
 Todas las actividades importantes del proyecto se registran aquí.
 
-## [Unreleased]
+## [1.2.0] - 2026-03-18
 
-## [1.1.0] - 2026-03-16
+### Added (Nuevo)
+- **Generación Manual de Informes**: Nueva opción para generar reportes extrayendo datos directamente del changelog sin usar IA, con plantillas personalizables. [2026-03-18]
+- **Tareas: Modo Manual**: Soporte para programar tareas automáticas en modo manual (sin IA). [2026-03-18]
+- **Filtros de Historial**: Sistema de filtrado avanzado en el historial de reportes por modo (IA/Manual), fecha (desde/hasta) y fuente de datos. [2026-03-18]
+- **ReportService (Backend)**: Nueva arquitectura de servicios para compartir lógica de generación entre la UI y el programador de tareas. [2026-03-18]
+- **Persistencia Extendida**: Inclusión de `source_id` en la tabla de reportes para trazabilidad total de la fuente de datos. [2026-03-18]
+
+### Changed (Cambio)
+- **Discord: Robustez en Envío**: Implementación de troceado automático de mensajes (límite de 2000 caracteres) para evitar errores 400 de Discord API en reportes extensos. [2026-03-18]
+
+### Fixed (Corrección)
+- **Discord: Error 400 (Bad Request)**: Solucionado el problema de rechazo de mensajes por exceder límites de "embeds". [2026-03-18]
+- **Backend: Estabilidad en /api/reports**: Corregido error 500 causado por desincronización de esquema de base de datos. [2026-03-18]
+
 
 ### Added (Nuevo)
 - **Progreso en Tiempo Real**: Integración de Socket.io en backend y frontend para mostrar el estado de generación de informes. [2026-03-16]
