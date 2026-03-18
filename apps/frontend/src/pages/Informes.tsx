@@ -5,6 +5,7 @@ import {
 	Eye,
 	EyeOff,
 	FileText,
+	Copy,
 	History,
 	Loader2,
 	Save,
@@ -83,11 +84,31 @@ const Informes = () => {
 	const [blockers, setBlockers] = useState("");
 	const [doubts, setDoubts] = useState("");
 
-	const [activeTab, setActiveTab] = useState<"generar" | "lista">("generar");
+	const [activeTab, setActiveTab] = useState<"generar-ia" | "generar-manual" | "lista">("generar-ia");
+	const [manualTemplate, setManualTemplate] = useState(
+		localStorage.getItem("manualTemplate") ||
+`## 📝 Reporte Diario ({date})
+
+**Planes para hoy / pendientes:**
+{today}
+
+**Bloqueos:**
+{blockers}
+
+**Dudas:**
+{doubts}
+
+### Títulos de Hoy
+{titles}
+
+### Detalle de actividades:
+{details}`
+	);
 	const [reportsArr, setReportsArr] = useState<Report[]>([]);
 	const [expandedId, setExpandedId] = useState<number | null>(null);
 	const [editingReportId, setEditingReportId] = useState<number | null>(null);
 	const [editingContent, setEditingContent] = useState("");
+	const [reportDate, setReportDate] = useState(new Date().toISOString().split("T")[0]);
 
 	const [globalWebhooks, setGlobalWebhooks] = useState<DiscordWebhook[]>([]);
 	const [globalMentions, setGlobalMentions] = useState<DiscordMention[]>([]);
@@ -229,11 +250,7 @@ const Informes = () => {
 
 		setLoading(true);
 		try {
-			const d = new Date();
-			const yyyy = d.getFullYear();
-			const mm = String(d.getMonth() + 1).padStart(2, "0");
-			const dd = String(d.getDate()).padStart(2, "0");
-			const todayStr = `${yyyy}-${mm}-${dd}`;
+			const todayStr = reportDate;
 
 			const lines = changelog.split("\n");
 			let currentTitle = "";
@@ -264,34 +281,31 @@ const Informes = () => {
 				return;
 			}
 
-			let manualOutput = `## 📝 Reporte Diario (${todayStr})\n\n`;
+			let rendered = manualTemplate;
+			
+			rendered = rendered.replace(/\{date\}/g, todayStr);
+			rendered = rendered.replace(/\{today\}/g, today.trim() || 'N/A');
+			rendered = rendered.replace(/\{blockers\}/g, blockers.trim() || 'N/A');
+			rendered = rendered.replace(/\{doubts\}/g, doubts.trim() || 'N/A');
 
-			if (today.trim()) {
-				manualOutput += `**Planes para hoy / pendientes:**\n${today}\n\n`;
-			}
-			if (blockers.trim()) {
-				manualOutput += `**Bloqueos:**\n${blockers}\n\n`;
-			}
-			if (doubts.trim()) {
-				manualOutput += `**Dudas:**\n${doubts}\n\n`;
-			}
-
-			manualOutput += `### Títulos de Hoy\n`;
+			let titlesStr = '';
 			for (const block of todayBlocks) {
 				const match = block.title.match(/-\s*\*\*(.*?)\*\*/);
 				const titleText = match ? match[1] : block.title.replace(/^- /, "");
-				manualOutput += `- ${titleText}\n`;
+				titlesStr += `- ${titleText}\n`;
 			}
+			rendered = rendered.replace(/\{titles\}/g, titlesStr.trim() || 'N/A');
 
-			manualOutput += `\n### Detalle de actividades:\n`;
+			let detailsStr = '';
 			for (const block of todayBlocks) {
-				manualOutput += `${block.title}\n`;
+				detailsStr += `${block.title}\n`;
 				for (const l of block.lines) {
-					manualOutput += `${l}\n`;
+					detailsStr += `${l}\n`;
 				}
 			}
+			rendered = rendered.replace(/\{details\}/g, detailsStr.trim() || 'N/A');
 
-			setReport(manualOutput);
+			setReport(rendered);
 		} catch (err) {
 			console.error(err);
 			alert("Error al generar reporte manual.");
@@ -388,16 +402,28 @@ const Informes = () => {
 				}}
 			>
 				<button
-					className={activeTab === "generar" ? "" : "secondary"}
-					onClick={() => setActiveTab("generar")}
+					className={activeTab === "generar-ia" ? "" : "secondary"}
+					onClick={() => setActiveTab("generar-ia")}
 					style={{
 						borderRadius: "12px 12px 0 0",
-						...(activeTab === "generar"
+						...(activeTab === "generar-ia"
 							? {}
 							: { background: "transparent", border: "none" }),
 					}}
 				>
-					<Sparkles size={18} /> Generar Informe
+					<Sparkles size={18} /> IA
+				</button>
+				<button
+					className={activeTab === "generar-manual" ? "" : "secondary"}
+					onClick={() => setActiveTab("generar-manual")}
+					style={{
+						borderRadius: "12px 12px 0 0",
+						...(activeTab === "generar-manual"
+							? {}
+							: { background: "transparent", border: "none" }),
+					}}
+				>
+					<FileText size={18} /> Manual
 				</button>
 				<button
 					className={activeTab === "lista" ? "" : "secondary"}
@@ -409,15 +435,15 @@ const Informes = () => {
 							: { background: "transparent", border: "none" }),
 					}}
 				>
-					<FileText size={18} /> Historial de Informes
+					<History size={18} /> Historial
 				</button>
 			</div>
 
-			{activeTab === "generar" ? (
+			{activeTab === "generar-ia" || activeTab === "generar-manual" ? (
 				<div className="grid-cols-2">
 					<section className="glass-card">
 						<div className="flex-between mb-1" style={{ gap: "0.5rem" }}>
-							<h3>🚀 Nuevo Informe</h3>
+							<h3>{activeTab === "generar-ia" ? "🚀 Nuevo Informe IA" : "📝 Nuevo Informe Manual"}</h3>
 							<div
 								style={{
 									display: "flex",
@@ -451,8 +477,24 @@ const Informes = () => {
 										</option>
 									))}
 								</select>
+
+								<div style={{ minWidth: "150px" }}>
+									<input
+										type="date"
+										value={reportDate}
+										onChange={(e) => setReportDate(e.target.value)}
+										style={{ 
+											fontSize: "0.85rem",
+											padding: "0.4rem",
+											borderRadius: "8px",
+											width: "100%"
+										}}
+									/>
+								</div>
 							</div>
 						</div>
+						
+						{activeTab === "generar-ia" && (
 						<div
 							style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem" }}
 						>
@@ -544,6 +586,7 @@ const Informes = () => {
 								</select>
 							</div>
 						</div>
+						)}
 
 						<textarea
 							id="changelog-input"
@@ -660,34 +703,63 @@ const Informes = () => {
 							</div>
 						</div>
 
-						<div style={{ display: "flex", gap: "1rem", marginTop: "1.5rem" }}>
-							<button
-								type="button"
-								onClick={generateReport}
-								disabled={loading}
-								style={{ flex: 1 }}
-							>
-								{loading ? (
-									<div className="flex-center gap-1">
-										<Loader2 size={18} className="animate-spin" />
-										<span>{progress || "IA..."}</span>
-									</div>
-								) : (
-									<>
-										<Sparkles size={18} /> Generar IA
-									</>
-								)}
-							</button>
+						{activeTab === "generar-manual" && (
+							<div className="form-group" style={{ marginTop: "1rem" }}>
+								<label className="text-muted" style={{ fontSize: "0.8rem", marginBottom: "0.4rem", display: "block" }}>
+									🛠️ PLANTILLA DEL REPORTE MANUAL
+								</label>
+								<textarea
+									value={manualTemplate}
+									onChange={(e) => {
+										setManualTemplate(e.target.value);
+										localStorage.setItem("manualTemplate", e.target.value);
+									}}
+									style={{ height: "200px", resize: "none", fontSize: "0.85rem", background: "var(--bg-deep)" }}
+								/>
+								<p className="text-muted" style={{ fontSize: "0.75rem", marginTop: "0.2rem" }}>
+									Variables disponibles: {"{date}, {today}, {blockers}, {doubts}, {titles}, {details}"}
+								</p>
+							</div>
+						)}
 
-							<button
-								type="button"
-								onClick={generateManualReport}
-								disabled={loading}
-								className="secondary"
-								style={{ flex: 1 }}
-							>
-								<FileText size={18} /> Generar Manual
-							</button>
+						<div style={{ display: "flex", gap: "1rem", marginTop: "1.5rem" }}>
+							{activeTab === "generar-ia" ? (
+								<button
+									type="button"
+									onClick={generateReport}
+									disabled={loading}
+									style={{ flex: 1 }}
+								>
+									{loading ? (
+										<div className="flex-center gap-1">
+											<Loader2 size={18} className="animate-spin" />
+											<span>{progress || "IA..."}</span>
+										</div>
+									) : (
+										<>
+											<Sparkles size={18} /> Generar IA
+										</>
+									)}
+								</button>
+							) : (
+								<button
+									type="button"
+									onClick={generateManualReport}
+									disabled={loading}
+									style={{ flex: 1 }}
+								>
+									{loading ? (
+										<div className="flex-center gap-1">
+											<Loader2 size={18} className="animate-spin" />
+											<span>Procesando...</span>
+										</div>
+									) : (
+										<>
+											<FileText size={18} /> Generar Manual
+										</>
+									)}
+								</button>
+							)}
 						</div>
 					</section>
 
@@ -695,6 +767,15 @@ const Informes = () => {
 						<div className="flex-between mb-2">
 							<h3>Vista Previa</h3>
 							<div className="flex-gap-1">
+								<button
+									type="button"
+									className="secondary"
+									onClick={() => navigator.clipboard.writeText(report)}
+									disabled={!report}
+									title="Copiar al portapapeles"
+								>
+									<Copy size={16} /> Copiar
+								</button>
 								<button
 									type="button"
 									className="secondary"
