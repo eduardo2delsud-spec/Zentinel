@@ -7,5 +7,5 @@ const isLocalDev =
 	window.location.port === "5173";
 
 export const API_BASE = isLocalDev
-	? "http://localhost:3001/api"
+	? "http://localhost:3667/api"
 	: "/api";

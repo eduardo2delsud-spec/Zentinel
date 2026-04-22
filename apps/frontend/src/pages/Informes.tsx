@@ -274,17 +274,29 @@ const Informes = () => {
 			const todayBlocks: { title: string; lines: string[] }[] = [];
 
 			for (let i = 0; i < lines.length; i++) {
-				const line = lines[i];
-				if (line.trim().startsWith("- **") || line.trim().startsWith("- ") || line.trim().startsWith("### ")) {
+				const originalLine = lines[i];
+				const line = originalLine.trim();
+
+				// Filtramos leyendas y guías de uso
+				if (/Maintenance\s*\(Mantenimiento\)/i.test(line) && /infraestructura/i.test(line)) continue;
+				if (/^[-*]*\s*\*\*(Added|Changed|Fixed|Removed|Maintenance).*?\*\*: Para/i.test(line)) continue;
+				if (line.startsWith("Para mantener el historial ordenado")) continue;
+				if (line.startsWith("## Guía de uso")) continue;
+
+				// Filtramos fechas de otros días que sirven de separadores
+				if (/^\[\d{4}-\d{2}-\d{2}\]$/.test(line) && !line.includes(todayStr)) continue;
+
+				if (line.startsWith("- **") || line.startsWith("- ") || line.startsWith("### ")) {
+
 					if (currentTitle && (blockLines.some((l) => l.includes(`[${todayStr}]`)) || currentTitle.includes(`[${todayStr}]`))) {
 						todayBlocks.push({ title: currentTitle, lines: blockLines });
 					}
-					currentTitle = line;
+					currentTitle = originalLine;
 					blockLines = [];
-				} else if (line.trim().startsWith("*") || line.trim().startsWith("-")) {
-					blockLines.push(line);
-				} else if (line.trim()) {
-					blockLines.push(line);
+				} else if (line.startsWith("*") || line.startsWith("-")) {
+					blockLines.push(originalLine);
+				} else if (line) {
+					blockLines.push(originalLine);
 				}
 			}
 			if (currentTitle && (blockLines.some((l) => l.includes(`[${todayStr}]`)) || currentTitle.includes(`[${todayStr}]`))) {
@@ -300,9 +312,37 @@ const Informes = () => {
 			let rendered = manualTemplate;
 			
 			rendered = rendered.replace(/\{date\}/g, todayStr);
-			rendered = rendered.replace(/\{today\}/g, today.trim() || 'N/A');
-			rendered = rendered.replace(/\{blockers\}/g, blockers.trim() || 'N/A');
-			rendered = rendered.replace(/\{doubts\}/g, doubts.trim() || 'N/A');
+
+			const processSection = (text: string, key: string, value: string) => {
+				const trimmed = value.trim();
+				if (trimmed) return text.replace(new RegExp(`\\{${key}\\}`, "g"), trimmed);
+
+				const lines = text.split("\n");
+				const newLines: string[] = [];
+				for (let i = 0; i < lines.length; i++) {
+					if (lines[i].includes(`{${key}}`)) {
+						if (
+							newLines.length > 0 &&
+							(newLines[newLines.length - 1].trim().startsWith("**") ||
+								newLines[newLines.length - 1].trim().startsWith("###"))
+						) {
+							newLines.pop();
+						}
+						// Remove potential trailing empty line to avoid big gaps
+						if (newLines.length > 0 && newLines[newLines.length - 1].trim() === "") {
+							newLines.pop();
+						}
+						continue;
+					}
+					newLines.push(lines[i]);
+				}
+				return newLines.join("\n");
+			};
+
+			rendered = processSection(rendered, "today", today);
+			rendered = processSection(rendered, "blockers", blockers);
+			rendered = processSection(rendered, "doubts", doubts);
+
 
 			let titlesStr = '';
 			for (const block of todayBlocks) {
