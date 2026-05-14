@@ -12,7 +12,7 @@ services:
     environment:
       - PORT=3666
       - NODE_ENV=production
-    restart: always
+    restart: none
 
   zentinel-frontend:
     build:
@@ -23,4 +23,4 @@ services:
       - "8888:80"
     depends_on:
       - zentinel-backend
-    restart: always
+    restart: none
